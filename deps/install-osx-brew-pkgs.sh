@@ -44,3 +44,5 @@ if ! grep '/usr/local/opt/opencv3/lib/python2.7/site-packages' /usr/local/lib/py
 fi
 # gRPC
 brew install openssl
+brew install maven
+brew install gradle

@@ -1,0 +1,95 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+option java_multiple_files = true;
+option java_package = "ai.lucida.grpc";
+option java_outer_classname = "ServiceProto";
+
+package lucida;
+
+// QueryInput for non-streaming requests
+message QueryInput {
+  // type of data
+  string type = 1;
+
+  // list of data
+  repeated bytes data = 2;
+
+  // tags to pass information about data
+  repeated string tags = 3;
+}
+
+// QuerySpec for non-streaming requests
+message QuerySpec {
+  string name = 1;
+  repeated QueryInput content = 2;
+}
+
+// RPC request non-streaming
+message Request { 
+  string LUCID = 1;
+  QuerySpec spec = 2;
+}
+
+// QueryInput for streaming requests
+message QueryInputFirst {
+  // type of data
+  string type = 1;
+
+  // list of data
+  bytes data = 2;
+
+  // tags to pass information about data
+  string tag = 3;
+}
+
+// QueryInput for streaming requests
+message QueryInputNext {
+  // list of data
+  bytes data = 5;
+
+  // tags to pass information about data
+  string tag = 6;
+}
+
+// QuerySpec for streaming requests
+message QuerySpecFirst {
+  string name = 2;
+  QueryInputFirst contentFirst = 3;
+}
+
+// QuerySpec for streaming requests
+message QuerySpecNext {
+  QueryInputFirst contentNext = 4;
+}
+
+// RPC streaming request
+// Data arrangement
+//   LUCID specFirst [specNext [inputNext ...] [specNext ...]] [specFirst ...]
+message StreamingRequest {
+  oneof msg {
+    string id = 1;
+    QuerySpecFirst specFirst = 2;
+    QuerySpecNext  specNext  = 3;
+    QueryInputNext inputNext = 4;
+  }
+}
+
+message Response {
+  bytes msg = 1;
+}
+
+// The service definition
+service LucidaService {
+  // create an intelligent instance based on supplied LUCID
+  rpc create(Request) returns (google.protobuf.Empty) {}
+
+  // tell the intelligent instance to learn based on data supplied in the query
+  rpc learn(Request) returns (google.protobuf.Empty) {}
+  rpc learnStreaming(stream StreamingRequest) returns (google.protobuf.Empty) {}
+
+  // ask the intelligence to infer using the data supplied in the query
+  rpc infer(Request) returns (Response) {}
+  rpc inferStreaming(stream StreamingRequest) returns (Response) {}
+}
+
