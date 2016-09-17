@@ -1,17 +1,17 @@
-Lucida on this branch uses gRPC Connectors
-==========================================
+Lucida on this branch uses gRPC
+===============================
 
-The thrift rpc interface has been completely removed and replaced.
+The thrift rpc interface is currently being removed and replaced. This is work in progress.
 Thrift is stable but the async C++ version provided by Facebook is not. FBThrift is broken,
-you cannot build apache thrift from FB's fork and the latest official release is Jan 2015. 
-If you checkout the master the tests fail. In order to solve these issues one must checkout
+you cannot build apache thrift from FB's fork, and the latest official release is Jan 2015. 
+If you checkout master then the tests fail. In order to solve these issues one must checkout
 a particular commit that is verifed to work with a particular commit of FB folly etc. Its
 horrible!. Folly is very active but FBthrift has to use an outdated version to work.
 
 This version of Lucida uses gRPC. This is the same code Google uses for their infrastructure.
 It's bullet proof tested, production ready, stable, with excellent integration into Gradle.
 If you have been playing with Lucida and are plagued by build issues then you should take
-a look at this fork.
+a look at this fork. The conversion to gRPC should be completed soon.
 
 ## Building All Services
 
@@ -34,7 +34,7 @@ thanks to gRPC.
 ## TODO List
 
 If you would like more features let us know. Here is what we have on the near horizon.
-The items below are just ideas not fully vetted them.
+The items below are just ideas and are not fully vetted.
 
 - Streaming support for learn and infer.
 - Common sense reasoning added to OpenEphra.
