@@ -1,4 +1,4 @@
-package ai.lucida.service.calendar;
+package ai.lucida.calendar;
 
 import java.util.Date;
 import java.io.File;

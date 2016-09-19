@@ -1,9 +1,9 @@
-package ai.lucida.service.calendar;
+package ai.lucida.calendar;
 
 import java.io.IOException;
 
 import ai.lucida.grpc.ServiceAcceptor;
-import ai.lucida.service.calendar.CAServiceHandler;
+import ai.lucida.calendar.CAServiceHandler;
 
 /**
  * Starts the calendar server and listens for requests.

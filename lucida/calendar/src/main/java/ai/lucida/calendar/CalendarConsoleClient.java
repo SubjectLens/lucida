@@ -1,4 +1,4 @@
-package ai.lucida.client.calendar;
+package ai.lucida.calendar;
 
 import java.io.UnsupportedEncodingException;
 

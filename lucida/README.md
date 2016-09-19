@@ -5,13 +5,12 @@ The thrift rpc interface is currently being removed and replaced. This is work i
 Thrift is stable but the async C++ version provided by Facebook is not. FBThrift is broken,
 you cannot build apache thrift from FB's fork, and the latest official release is Jan 2015. 
 If you checkout master then the tests fail. In order to solve these issues one must checkout
-a particular commit that is verifed to work with a particular commit of FB folly etc. Its
-horrible!. Folly is very active but FBthrift has to use an outdated version to work.
+a particular commit that is verifed to work with a particular commit of FB folly etc. Folly
+is very active but FBthrift has to use an outdated version to work.
 
 This version of Lucida uses gRPC. This is the same code Google uses for their infrastructure.
 It's bullet proof tested, production ready, stable, with excellent integration into Gradle.
-If you have been playing with Lucida and are plagued by build issues then you should take
-a look at this fork. The conversion to gRPC should be completed soon.
+The conversion to gRPC should be completed soon.
 
 ## Building All Services
 
@@ -19,7 +18,7 @@ This directory contains all of the back-end services and the command center.
 To build all services (assuming you are in this directory):
 
 ```
-pushd ./deps
+pushd ../deps
 make
 popd
 gradle build
