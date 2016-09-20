@@ -30,6 +30,26 @@ The top level root project builds the gRPC intefaces for Java, Python, and C++. 
 code can be found in `./build/generated`. Asynchronous RPC is supported in all languages
 thanks to gRPC.
 
+Server and client code are located in the `src` folder. The backing implementation for a service
+is typically one directory below. For example, the question and answering client and server code
+is located at `./lucida/questionanswering/src` and the backing implementation is located at
+`./lucida/questionanswering/OpenEphyra`.
+
+## Importing into IntelliJ IDEA
+
+### OSX
+
+- Install the IDE and setup [Java home](http://stackoverflow.com/questions/31215452/intellij-idea-importing-gradle-project-getting-java-home-not-defined-yet).
+- Import the gradle project at `./lucida`.
+
+To set Java home in the shell add this line to your bash profile.
+```
+export JAVA_HOME="$(/usr/libexec/java_home)"
+```
+
+### Linux
+
+
 ## TODO List
 
 If you would like more features let us know. Here is what we have on the near horizon.
