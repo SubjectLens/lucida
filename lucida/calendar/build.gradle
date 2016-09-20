@@ -1,7 +1,7 @@
 apply plugin: 'java'
 apply plugin: 'application'
 
-mainClassName = 'calendar.CalendarDaemon'
+mainClassName = 'ai.lucida.calendar.CalendarDaemon'
 
 version = '0.1.0'
 

@@ -1,4 +1,4 @@
-package lucida.handler;
+package ai.lucida.qa;
 
 // Open Ephyra packages
 import info.ephyra.io.MsgPrinter;
@@ -19,8 +19,10 @@ import com.mongodb.client.MongoDatabase;
 import static com.mongodb.client.model.Filters.*;
 import static com.mongodb.client.model.Updates.*;
 import lemurproject.indri.IndexEnvironment;
-// Interface definition
-import lucida.thrift.*;
+
+import ai.lucida.grpc.QuerySpec;
+import ai.lucida.grpc.QueryInput;
+import com.google.protobuf.ByteString;
 
 /** Class representing knowledge base.
  *  Four types of knowledge are accepted:
@@ -116,25 +118,25 @@ public class KnowledgeBase {
 		IndexEnvironment env = new IndexEnvironment();
 		env.setStemmer("krovetz");
 		env.open(Indri_path);
-		for (QueryInput q : knowledge.content) {
-			switch (q.type.toLowerCase()) {
+		for (QueryInput q : knowledge.getContentList()) {
+			switch (q.getType().toLowerCase()) {
 			case "text":
-				for (int i = 0; i < q.data.size(); ++i) {
-					commitText(env, q.data.get(i), q.tags.get(i));
+				for (int i = 0; i < q.getDataList().size(); ++i) {
+					commitText(env, q.getDataList().get(i).toString("UTF-8"), q.getTagsList().get(i));
 				}
 				break;
 			case "url":
-				for (int i = 0; i < q.data.size(); ++i) {
-					commitUrl(env, q.data.get(i), q.tags.get(i));
+				for (int i = 0; i < q.getDataList().size(); ++i) {
+					commitUrl(env, q.getDataList().get(i).toString("UTF-8"), q.getTagsList().get(i));
 				}
 				break;
 			case "unlearn":
-				for (int i = 0; i < q.tags.size(); ++i) {
-					deleteDoc(env, q.tags.get(i));
+				for (int i = 0; i < q.getTagsList().size(); ++i) {
+					deleteDoc(env, q.getTagsList().get(i));
 				}
 				break;
 			default:
-				throw new RuntimeException("Unrecognized QueryInput type: " + q.type);
+				throw new RuntimeException("Unrecognized QueryInput type: " + q.getType());
 			}
 		}
 		env.close();
