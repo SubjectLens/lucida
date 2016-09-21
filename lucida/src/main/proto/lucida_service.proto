@@ -32,7 +32,7 @@ message Request {
 }
 
 message Response {
-  bytes msg = 1;
+  string msg = 1;
 }
 
 // The service definition

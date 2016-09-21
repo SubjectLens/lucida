@@ -73,14 +73,6 @@ public class QAClient {
 						add(knowledge_text);
 						add(knowledge_url);
 					}};
-			/*
-			final QuerySpec knowledge = createQuerySpec(
-					"knowledge",
-					new ArrayList<QueryInput>() {{
-						add(knowledge_text);
-						add(knowledge_url);
-					}});
-			*/
 			// Unlearn.
 			final QueryInput knowledge_unlearn_input = createQueryInput(
 					"unlearn",
@@ -113,23 +105,34 @@ public class QAClient {
 			System.out.println("QA at port " + port);
 
 			ServiceConnector client = new ServiceConnector("localhost", port);
+			Request request;
 
-			// Learn and ask.
 			client.create(LUCID);
-			client.learn(LUCID, knowledge);
-			System.out.println("///// Query input: /////");
-			System.out.println(query_input.getDataList().get(0).toString("UTF-8"));
-			//String answer = client.infer(LUCID, query).getMsg();
-			String answer = client.infer(LUCID, "text", ByteString.copyFrom("Who created Clinc", "UTF-8")).toString("UTF-8");
+
+			// Learn knowledge
+			System.out.println("///// Learn knowledge /////");
+			request = client.buildLearnRequest(LUCID, knowledge);
+			client.learn(request);
+
+			System.out.println("///// Infer: /////");
+			request = client.buildInferRequest(LUCID, "text", "Who created Clinc");
+			// Print the question
+			System.out.println(request.getSpec().getContent(0).getData(0).toString("UTF-8"));
+			String answer = client.infer(request);
 			// Print the answer.
 			System.out.println("///// Answer: /////");
 			System.out.println(answer);
+
 			// Unlearn and ask again.
-			client.learn(Request.newBuilder().setLUCID(LUCID).setSpec(knowledge_unlearn_spec).build());
-			System.out.println("///// Query input: /////");
-			System.out.println(query_input.getDataList().get(0).toString("UTF-8"));
-			//answer = client.infer(Request.newBuilder().setLUCID(LUCID).setSpec(query).build()).toString("UTF-8");
-			answer = client.infer(LUCID, "text", ByteString.copyFrom("Who created Clinc", "UTF-8")).toString("UTF-8");
+			System.out.println("///// Unlearn knowledge /////");
+			request = client.buildRequest(LUCID, knowledge_unlearn_spec);
+			System.out.println(request.getSpec().getContent(0).getTags(0));
+			client.learn(request);
+
+			System.out.println("///// Infer: /////");
+			request = client.buildInferRequest(LUCID, "text", "Who created Clinc");
+			System.out.println(request.getSpec().getContent(0).getData(0).toString("UTF-8"));
+			answer = client.infer(request);
 			// Print the answer.
 			System.out.println("///// Answer: /////");
 			System.out.println(answer);

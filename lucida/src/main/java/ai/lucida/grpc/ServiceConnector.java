@@ -35,13 +35,12 @@ package ai.lucida.grpc;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Channel;
-import io.grpc.Status;
+/* import io.grpc.Status; */
 import io.grpc.StatusRuntimeException;
-import io.grpc.stub.StreamObserver;
 import com.google.protobuf.ByteString;
 
-import java.io.IOException;
-import java.util.List;
+import java.io.UnsupportedEncodingException;
+import java.net.UnknownServiceException;
 import java.util.Collections;
 import java.math.BigInteger;
 import java.security.SecureRandom;
@@ -50,17 +49,10 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ai.lucida.grpc.ServiceNames;
-import ai.lucida.grpc.Request;
-import ai.lucida.grpc.Response;
-import ai.lucida.grpc.QuerySpec;
-import ai.lucida.grpc.QueryInput;
-import ai.lucida.grpc.LucidaServiceGrpc;
-
 /**
  * Lucida client of gRPC service.
  */
-public class ServiceConnector {
+public final class ServiceConnector {
 	private static final Logger logger = LoggerFactory.getLogger(ServiceConnector.class);
 
 	private final ManagedChannel channel_;
@@ -85,9 +77,8 @@ public class ServiceConnector {
 	 * Construct client for accessing a Lucida service using an existing channel.
 	 * The channel credentials and encryption is dictated by the channelBuilder.
 	 *
-	 * @param channelBulder The channel builder.
+	 * @param channelBuilder The channel builder.
 	 * @see io.grpc.ManagedChannelBuilder
-	 * @see io.grpc.NettyChannelBuilder
 	 */
 	public ServiceConnector(ManagedChannelBuilder<?> channelBuilder) {
 		channel_ = channelBuilder.build();
@@ -154,12 +145,22 @@ public class ServiceConnector {
 	}
 
 	/**
+	 * Build a generic request for learn, infer, create.
+	 * @param id    The LUCID.
+	 * @param spec	The query spec.
+	 * @return The request.
+	 */
+	public static Request buildRequest(String id, QuerySpec spec) {
+		return Request.newBuilder().setLUCID(id).setSpec(spec).build();
+	}
+
+	/**
 	 * Create an intelligent instance based on supplied id.
 	 *
-	 * @param  Id   The LUCID.
+	 * @param  id   The LUCID.
 	 * @return True if successful.
 	 */
-	public boolean create(String id) {
+	public void create(String id) throws UnknownServiceException {
 		logger.info("{} {}", ServiceNames.createCommandName, id);
 		Request request = Request.newBuilder()
 				.setLUCID(id)
@@ -169,106 +170,84 @@ public class ServiceConnector {
 		try {
 			blockingStub_.create(request);
 		} catch (StatusRuntimeException e) {
-			logger.warn("RPC failed: {}", e.getStatus());
-			return false;
+			logger.warn("RPC failed: {}", e.getMessage());
+            throw new UnknownServiceException(e.getMessage());
 		}
-		return true;
 	}
 
 	/**
 	 * General blocking request for learn. Building is left to the caller.
-	 * @param  The request.
+	 * @param  request	The request.
 	 * @return True if successful.
 	 */
-	public boolean learn(Request request) {
+	public void learn(Request request) throws UnknownServiceException {
 		try {
 			blockingStub_.learn(request);
 		} catch (StatusRuntimeException e) {
-			logger.warn("RPC failed: {}", e.getStatus());
-			return false;
+			logger.warn("RPC failed: {}", e.getMessage());
+			throw new UnknownServiceException(e.getMessage());
 		}
-		return true;
 	}
 
 	/**
-	 * Learn from text, url, or image data.
+	 * Build a request for learn. Content can be text, url, or image data.
 	 *
-	 * @param Id    The LUCID.
-	 * @param input The data to learn from.
+	 * @param id        The LUCID.
+	 * @param content   The data to learn from.
+	 * @return The request.
 	 */
-	public boolean learn(String id, java.lang.Iterable<QueryInput> input) {
-		logger.info("SYNC  {} variant {}", ServiceNames.learnCommandName, id);
-		Request request = Request.newBuilder()
+	public static Request buildLearnRequest(String id, java.lang.Iterable<QueryInput> content) {
+		logger.info("BLD.Learn {} variant {}", ServiceNames.learnCommandName, id);
+		return Request.newBuilder()
 			.setLUCID(id)
 			.setSpec(QuerySpec.newBuilder()
                 .setName(ServiceNames.learnCommandName)
-				.addAllContent(input))
+				.addAllContent(content))
 			.build();
-        return learn(request);
-	}
+ 	}
 
 	/**
-	 * Learn from text, url, or image data.
+	 * Build a request for learn. Content can be text, url, or image data.
 	 *
-	 * @param Id    The LUCID.
-	 * @param input The data to learn from.
-	 * @return True if successful.
+	 * @param id        The LUCID.
+	 * @param content   The data to learn from.
+	 * @return The request.
 	 */
-	public boolean learn(String id, QueryInput input) {
-		return learn(id, Collections.singletonList(input));
+	public static Request buildLearnRequest(String id, QueryInput content) {
+		return buildLearnRequest(id, Collections.singletonList(content));
 	}
 
-	/**
-	 * Learn from text or URL.
-	 *
-	 * @param Id        The LUCID.
-	 * @param type      A serice type name.
-	 * @param textOrUrl The data to learn from.
-	 * @return True if successful.
-	 * @see   ai.lucida.grpc.ServiceNames
-	 */
-	public boolean learn(String id, String type, java.lang.Iterable<ByteString> textOrUrl) {
-		logger.info("SYNC  {} {} {}", ServiceNames.learnCommandName, type, id);
-        if (!ServiceNames.isTypeName(type))
-            return false;
-		Request request = Request.newBuilder()
-			.setLUCID(id)
-			.setSpec(QuerySpec.newBuilder()
-				.setName(ServiceNames.learnCommandName)
-				.addContent(QueryInput.newBuilder()
-					.setType(type)
-					.addAllData(textOrUrl)))
-			.build();
-        return learn(request);
-	}
-    
 	/**
 	 * General blocking request for infer. Building is left to the caller.
-	 * @param  The request.
-	 * @return A ByetString if successful, else null.
+	 * @param  request	The request.
+	 * @return A String if successful, else null.
 	 */
-	public ByteString infer(Request request) {
-        Response result = null;
+	public String infer(Request request) throws UnknownServiceException {
+        Response result;
 		try {
 			result = blockingStub_.infer(request);
 		} catch (StatusRuntimeException e) {
-			logger.warn("RPC failed: {}", e.getStatus());
-			return null;
+			logger.warn("RPC failed: {}", e.getMessage());
+            throw new UnknownServiceException(e.getMessage());
 		}
 		return result.getMsg();
 	}
 
 	/**
-	 * Infer from text or url or bytes.
+	 * Build a request for infer from text or url or bytes.
 	 *
-	 * @param Id    The LUCID.
-	 * @param input The data to learn from.
+	 * @param id    The LUCID.
+	 * @param type	A service name type.
+	 * @param data  The data to infer from.
+	 * @param tags	Tags to attach to request.
+	 * @return The request.
+	 * @see ServiceNames
 	 */
-	public ByteString infer(String id, String type, ByteString data, java.lang.Iterable<String> tags) {
-		logger.info("SYNC  {} {} {}", ServiceNames.inferCommandName, type, id);
+	public static Request buildInferRequest(String id, String type, ByteString data, java.lang.Iterable<String> tags) {
+		logger.info("BLD.Infer {} {} {}", ServiceNames.inferCommandName, type, id);
         if (!ServiceNames.isTypeName(type))
             return null;
-		Request request = Request.newBuilder()
+		return Request.newBuilder()
 			.setLUCID(id)
 			.setSpec(QuerySpec.newBuilder()
 				.setName(ServiceNames.inferCommandName)
@@ -277,20 +256,47 @@ public class ServiceConnector {
     				.addData(data)
                     .addAllTags(tags)))
 			.build();
-        return infer(request);
 	}
 
 	/**
-	 * Infer from text or url.
+	 * Build a request for infer from text or url or bytes.
 	 *
-	 * @param Id    The LUCID.
-	 * @param input The data to learn from.
+	 * @param id    The LUCID.
+	 * @param type	A service name type.
+	 * @param data  The data to infer from.
+	 * @param tags	Tags to attach to request.
+	 * @return The request.
+	 * @see ServiceNames
 	 */
-	public ByteString infer(String id, String type, ByteString data) {
+	public static Request buildInferRequest(String id, String type, String data, java.lang.Iterable<String> tags) throws UnsupportedEncodingException {
+		logger.info("BLD.Infer {} {} {}", ServiceNames.inferCommandName, type, id);
+		if (!ServiceNames.isTypeName(type))
+			return null;
+		return Request.newBuilder()
+				.setLUCID(id)
+				.setSpec(QuerySpec.newBuilder()
+						.setName(ServiceNames.inferCommandName)
+						.addContent(QueryInput.newBuilder()
+								.setType(type)
+								.addData(ByteString.copyFrom(data, "UTF-8"))
+								.addAllTags(tags)))
+				.build();
+	}
+
+	/**
+	 * Build a request for infer from text or url or bytes.
+	 *
+	 * @param id    The LUCID.
+	 * @param type	A service name type.
+	 * @param data  The data to iner from.
+	 * @return A request object.
+	 * @see ServiceNames
+	 */
+	public static Request buildInferRequest(String id, String type, ByteString data) {
 		logger.info("SYNC  {} {} {}", ServiceNames.inferCommandName, type, id);
         if (!ServiceNames.isTypeName(type))
             return null;
-		Request request = Request.newBuilder()
+		return Request.newBuilder()
 			.setLUCID(id)
 			.setSpec(QuerySpec.newBuilder()
 				.setName(ServiceNames.inferCommandName)
@@ -298,20 +304,46 @@ public class ServiceConnector {
     				.setType(type)
     			    .addData(data)))
 			.build();
-        return infer(request);
 	}
 
-	/**
-	 * Infer from bytes.
+    /**
+     * Build a request for infer from text or url or bytes.
+     *
+     * @param id    The LUCID.
+     * @param type	A service name type.
+     * @param data The data to infer from.
+     * @return A request object.
+     * @see ServiceNames
+     */
+    public static Request buildInferRequest(String id, String type, String data) throws UnsupportedEncodingException {
+        logger.info("SYNC  {} {} {}", ServiceNames.inferCommandName, type, id);
+        if (!ServiceNames.isTypeName(type))
+            return null;
+        return Request.newBuilder()
+                .setLUCID(id)
+                .setSpec(QuerySpec.newBuilder()
+                        .setName(ServiceNames.inferCommandName)
+                        .addContent(QueryInput.newBuilder()
+                                .setType(type)
+                                .addData(ByteString.copyFrom(data,"UTF-8"))))
+                .build();
+    }
+
+    /**
+	 * Build a request for infer from text or url or bytes.
 	 *
-	 * @param Id    The LUCID.
-	 * @param input The data to learn from.
+	 * @param id    The LUCID.
+	 * @param type	A service name type.
+	 * @param data  The data to infer from.
+     * @param tag	A Tag to attach to request.
+	 * @return A request object.
+	 * @see ServiceNames
 	 */
-	public ByteString infer(String id, String type, ByteString data, String tag) {
+	public static Request buildInferRequest(String id, String type, ByteString data, String tag) {
 		logger.info("SYNC  {} {} {}", ServiceNames.inferCommandName, type, id);
         if (!ServiceNames.isTypeName(type))
             return null;
-		Request request = Request.newBuilder()
+		return Request.newBuilder()
 			.setLUCID(id)
 			.setSpec(QuerySpec.newBuilder()
 				.setName(ServiceNames.inferCommandName)
@@ -320,6 +352,29 @@ public class ServiceConnector {
         			.addData(data)
                     .addTags(tag)))
 			.build();
-        return infer(request);
+ 	}
+
+	/**
+	 * Build a request for infer from text or url or bytes.
+	 *
+	 * @param id    The LUCID.
+	 * @param type	A service name type.
+	 * @param data The data to learn from.
+	 * @return A request object.
+	 * @see ServiceNames
+	 */
+	public static Request buildInferRequest(String id, String type, String data, String tag) throws UnsupportedEncodingException {
+		logger.info("SYNC  {} {} {}", ServiceNames.inferCommandName, type, id);
+		if (!ServiceNames.isTypeName(type))
+			return null;
+		return Request.newBuilder()
+				.setLUCID(id)
+				.setSpec(QuerySpec.newBuilder()
+						.setName(ServiceNames.inferCommandName)
+						.addContent(QueryInput.newBuilder()
+								.setType(type)
+								.addData(ByteString.copyFrom(data,"UTF-8"))
+								.addTags(tag)))
+				.build();
 	}
 }

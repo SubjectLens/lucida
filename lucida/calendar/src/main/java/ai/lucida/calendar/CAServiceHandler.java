@@ -1,37 +1,16 @@
 package ai.lucida.calendar;
 
-import java.util.List;
-import java.io.File;
-import java.util.ArrayList;
 import java.io.UnsupportedEncodingException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.grpc.stub.ClientCalls.asyncUnaryCall;
-import static io.grpc.stub.ClientCalls.asyncServerStreamingCall;
-import static io.grpc.stub.ClientCalls.asyncClientStreamingCall;
-import static io.grpc.stub.ClientCalls.asyncBidiStreamingCall;
-import static io.grpc.stub.ClientCalls.blockingUnaryCall;
-import static io.grpc.stub.ClientCalls.blockingServerStreamingCall;
-import static io.grpc.stub.ClientCalls.futureUnaryCall;
-import static io.grpc.MethodDescriptor.generateFullMethodName;
-import static io.grpc.stub.ServerCalls.asyncUnaryCall;
-import static io.grpc.stub.ServerCalls.asyncServerStreamingCall;
-import static io.grpc.stub.ServerCalls.asyncClientStreamingCall;
-import static io.grpc.stub.ServerCalls.asyncBidiStreamingCall;
-import static io.grpc.stub.ServerCalls.asyncUnimplementedUnaryCall;
-import static io.grpc.stub.ServerCalls.asyncUnimplementedStreamingCall;
-
 import io.grpc.stub.StreamObserver;
 import com.google.protobuf.Empty;
-import com.google.protobuf.ByteString;
 
 import ai.lucida.grpc.LucidaServiceGrpc;
 import ai.lucida.grpc.Request;
 import ai.lucida.grpc.Response;
-import ai.lucida.grpc.QuerySpec;
-import ai.lucida.grpc.QueryInput;
 
 /** 
  * Implementation of the calendar interface. A client request to any
@@ -52,12 +31,25 @@ public class CAServiceHandler extends LucidaServiceGrpc.LucidaServiceImplBase {
 			System.out.println(s);
 		}
 	}
-    
-    /**
-     * <pre>
-     * ask the intelligence to infer using the data supplied in the query
-     * </pre>
-     */
+
+    @Override
+    /** {@inheritDoc} */
+    public void create(Request request, StreamObserver<Empty> responseObserver) {
+        /* Do nothing */
+        responseObserver.onNext(Empty.newBuilder().build());
+        responseObserver.onCompleted();
+    }
+
+    @Override
+    /** {@inheritDoc} */
+    public void learn(Request request, StreamObserver<Empty> responseObserver) {
+        /* Do nothing */
+        responseObserver.onNext(Empty.newBuilder().build());
+        responseObserver.onCompleted();
+    }
+
+    @Override
+    /** {@inheritDoc} */
     public void infer(Request request, StreamObserver<Response> responseObserver) {
 
 	    print("@@@@@ Infer; User: " + request.getLUCID());
@@ -78,7 +70,7 @@ public class CAServiceHandler extends LucidaServiceGrpc.LucidaServiceImplBase {
     	    print("Result " + time_interval[0] + " " + time_interval[1]);
 
     	    responseObserver.onNext(Response.newBuilder()
-                .setMsg(ByteString.copyFrom(time_interval[0] + " " + time_interval[1], "UTF-8"))
+                .setMsg(time_interval[0] + " " + time_interval[1])
                 .build());
             responseObserver.onCompleted();
                         

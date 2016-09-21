@@ -101,27 +101,51 @@ task wrapper(type: Wrapper) {
 
 // Create gRPC interfaces for otherlanguages
 task grpcOther() {
-    description "Build Python and CPP gRPC interface."
-    
+	description "Build Python and CPP gRPC interface."
+   
+	doFirst {
+		new ByteArrayOutputStream().withStream { os ->
+			def result = exec {
+				commandLine 'which', 'grpc_python_plugin'
+				standardOutput = os
+			}
+			ext.pyPlugin = os.toString().trim()
+		}
+		logger.info("Found Python gRPC plugin ${pyPlugin}")
+		new ByteArrayOutputStream().withStream { os ->
+			def result = exec {
+				commandLine 'which', 'grpc_cpp_plugin' 
+				standardOutput = os
+			}
+			ext.cppPlugin = os.toString().trim()
+		}
+		logger.info("Found C++ gRPC plugin ${pyPlugin}")
+	}
+
     // Add some extension properties
     ext.cppout = new File("${buildDir}/grpc/cpp")
     ext.pyout  = new File("${buildDir}/grpc/python")
     ext.proto_filename = "lucida_service.proto"
     ext.proto_dirname = "${rootDir}/src/main/proto"
-    
+
     // Set io for up-to-date checks
     inputs.file "${proto_dirname}/${proto_filename}"
     outputs.dir cppout
     
-    // Create output directories first
+    // Execute protoc compiler with plugin 
     doLast {
+		// Create output directories first
         cppout.mkdirs()
         pyout.mkdirs()
-        // By separting the exec phase we allow incremetal executions of this task
+        // By separating the exec phase we allow incremetal executions of this task
         // - could not get it to work when this task was Exec type
-        tasks.create("grpcOtherExec", Exec) {
+        tasks.create("grpcPython", Exec) {
             workingDir = "${proto_dirname}" 
-            commandLine = ['protoc', "--python_out=${cppout}", "--cpp_out=${pyout}", '-I./', "${proto_filename}"]
+            commandLine = ['protoc', "--python_out=${pyout}", '-I./', "--grpc_out=${pyout}", "--plugin=protoc-gen-grpc=${pyPlugin}", "${proto_filename}"]
+        }.execute()
+        tasks.create("grpcCpp", Exec) {
+            workingDir = "${proto_dirname}" 
+            commandLine = ['protoc', "--cpp_out=${cppout}", '-I./', "--grpc_out=${cppout}", "--plugin=protoc-gen-grpc=${cppPlugin}", "${proto_filename}"]
         }.execute()
     }
 }

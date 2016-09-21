@@ -83,24 +83,16 @@ public class QAServiceHandler extends LucidaServiceGrpc.LucidaServiceImplBase {
 		}
 	}
 
-	/**
-	 * Creates a new OpenEphyra service for user LUCID.
-	 * @param LUCID ID of Lucida user
-	 * @param spec spec
-	 */
 	@Override
-    public void create(Request request, StreamObserver<Empty> responseObserver) {
+	/** {@inheritDoc} */
+	public void create(Request request, StreamObserver<Empty> responseObserver) {
 		MsgPrinter.printStatusMsg("@@@@@ Create; User: " + request.getLUCID());
 		responseObserver.onNext(Empty.newBuilder().build());
 		responseObserver.onCompleted();
 	}
 
-	/**
-	 * Adds knowledge to OpenEphyra.
-	 * @param LUCID ID of Lucida user
-	 * @param knowledge knowledge
-	 */
 	@Override
+	/** {@inheritDoc} */
 	public void learn(Request request, StreamObserver<Empty> responseObserver) {
 		MsgPrinter.printStatusMsg("@@@@@ Learn; User: " + request.getLUCID());
 		try {
@@ -116,12 +108,8 @@ public class QAServiceHandler extends LucidaServiceGrpc.LucidaServiceImplBase {
 		}
 	}
 
-	/**
-	 * Extracts a query string and returns the answer from OpenEphyra.
-	 * @param LUCID ID of Lucida user
-	 * @param query query
-	 */
 	@Override
+	/** {@inheritDoc} */
     public void infer(Request request, StreamObserver<Response> responseObserver) {
 		MsgPrinter.printStatusMsg("@@@@@ Infer; User: " + request.getLUCID());
 		
@@ -150,7 +138,7 @@ public class QAServiceHandler extends LucidaServiceGrpc.LucidaServiceImplBase {
 				int port = Integer.parseInt(request.getSpec().getContentList().get(1).getTagsList().get(1));
 				ServiceConnector ensemble = new ServiceConnector(host, port);
 
-				ByteString result = ensemble.infer(Request.newBuilder()
+				String result = ensemble.infer(Request.newBuilder()
 						.setLUCID(request.getLUCID())
 						.setSpec(QuerySpec.newBuilder()
 							.setName(ServiceNames.inferCommandName)
@@ -181,7 +169,7 @@ public class QAServiceHandler extends LucidaServiceGrpc.LucidaServiceImplBase {
 			else
 			{
 				responseObserver.onNext(Response.newBuilder()
-					.setMsg(ByteString.copyFrom(answer, "UTF-8"))
+					.setMsg(answer)
 					.build());
 				responseObserver.onCompleted();
 			}
@@ -197,7 +185,8 @@ public class QAServiceHandler extends LucidaServiceGrpc.LucidaServiceImplBase {
 		}
 	}
 
-	/** Forwards the client's question to the OpenEphyra object's askFactoid
+	/**
+	 * Forwards the client's question to the OpenEphyra object's askFactoid
 	 * method and collects the response.
 	 * @param LUCID ID of Lucida user
 	 * @param question eg. "what is the speed of light?"
