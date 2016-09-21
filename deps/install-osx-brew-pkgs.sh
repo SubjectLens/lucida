@@ -1,14 +1,21 @@
-#!/bin/sh
+#!/bin/bash
+
+function brew_install() {
+	brew list $1 >/dev/null 2>&1 && return 0
+	echo "Installing $1"
+	echo brew install $@
+	brew $@
+}
 
 # Homebrew installs are local to the current user
 brew update
-brew install autoconf
-brew install automake
-brew install libtool
-brew install cmake
+brew_install autoconf
+brew_install automake
+brew_install libtool
+brew_install cmake
 # OpenCV
-brew install libdc1394
-brew install ffmpeg \
+brew_install libdc1394
+brew_install ffmpeg \
 	--with-libvpx \
 	--with-opus \
 	--with-openjpeg \
@@ -30,7 +37,7 @@ brew tap homebrew/science
 # echo /usr/local/opt/opencv3/lib/python2.7/site-packages >> /usr/local/lib/python2.7/site-packages/opencv3.pth
 # mkdir -p /Users/paul/.local/lib/python2.7/site-packages
 # echo 'import site; site.addsitedir("/usr/local/lib/python2.7/site-packages")' >> /Users/paul/.local/lib/python2.7/site-packages/homebrew.pth
-brew install opencv3 \
+brew_install opencv3 \
 	--c++11 \
 	--with-ffmpeg \
 	--with-gstreamer \
@@ -43,6 +50,7 @@ if ! grep '/usr/local/opt/opencv3/lib/python2.7/site-packages' /usr/local/lib/py
 	echo 'import site; site.addsitedir("/usr/local/lib/python2.7/site-packages")' >> ~/.local/lib/python2.7/site-packages/homebrew.pth
 fi
 # gRPC
-brew install openssl
-brew install maven
-brew install gradle
+brew_install openssl
+brew_install maven
+brew_install gradle
+
