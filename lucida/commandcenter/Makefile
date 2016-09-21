@@ -32,7 +32,7 @@ start_server:
 	@echo "  use 'screen -r commandcenter' to reattach"
 	@echo "  use 'screen -list to show all running consoles"
 	@echo "  starting detached..."
-	@screen -d -m -S commandcenter bash -c start_server.sh $(filter-out $@,$(MAKECMDGOALS))
+	@screen -d -m -S commandcenter ./start_server.sh $(filter-out $@,$(MAKECMDGOALS))
 	
 stop_server:
 	./stop_server.sh

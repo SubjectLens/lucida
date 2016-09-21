@@ -9,6 +9,7 @@ function brew_install() {
 
 # Homebrew installs are local to the current user
 brew update
+brew_install coreutils
 brew_install autoconf
 brew_install automake
 brew_install libtool
