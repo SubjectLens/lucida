@@ -46,7 +46,8 @@ abspath () {
 
 ROOTPATH="$(abspath $(dirname $0))"
 SCRIPTNAME="$(basename $0)"
-BUILDPATH="$ROOTPATH/$1"
+# Remove trailing / from 1st arg
+BUILDPATH="$ROOTPATH/`echo $1 | sed 's/\/$//g'`"
 ACTION="$2.sh"
 
 [ "x$1" == "x" ] && die "$SCRIPTNAME expects a project name(1) - $1"

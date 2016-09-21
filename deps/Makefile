@@ -55,7 +55,8 @@ PROJECT_DEPS := \
 	protobuf_java \
 	protobuf_py \
 	grpc \
-	vpython
+	vpython \
+	caffe
 
 ifeq "$(findstring Darwin,$(shell python -mplatform))" "Darwin"
 LINUX=0

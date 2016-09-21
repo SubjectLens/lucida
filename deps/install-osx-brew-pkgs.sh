@@ -3,8 +3,8 @@
 function brew_install() {
 	brew list $1 >/dev/null 2>&1 && return 0
 	echo "Installing $1"
-	echo brew install $@
-	brew $@
+	echo brew install $*
+	brew install $*
 }
 
 # Homebrew installs are local to the current user
@@ -28,6 +28,24 @@ brew_install ffmpeg \
 	--with-snappy \
 	--with-xz \
 	--with-tools
+
+# gRPC
+brew_install openssl
+brew_install maven
+brew_install gradle
+
+# Berkely Caffe deps
+# Don't install protobuf because we compile v3 from source
+brew_install snappy 
+brew_install leveldb
+brew_install gflags 
+brew_install glog 
+brew_install szip 
+brew_install lmdb
+brew_install boost --build-from-source
+brew_install boost-python --build-from-source
+
+# OpenCV and Caffe
 brew tap homebrew/science
 #opencv --with-cuda  --with-vtk --with-contrib --with-quicktime
 # LDFLAGS:  -L/usr/local/opt/opencv3/lib
@@ -37,20 +55,21 @@ brew tap homebrew/science
 # echo /usr/local/opt/opencv3/lib/python2.7/site-packages >> /usr/local/lib/python2.7/site-packages/opencv3.pth
 # mkdir -p /Users/paul/.local/lib/python2.7/site-packages
 # echo 'import site; site.addsitedir("/usr/local/lib/python2.7/site-packages")' >> /Users/paul/.local/lib/python2.7/site-packages/homebrew.pth
-brew_install opencv3 \
-	--c++11 \
-	--with-ffmpeg \
-	--with-gstreamer \
-	--with-java \
-	--with-libdc1394 \
-	--with-opengl
+# brew_install opencv3 --c++11 --with-ffmpeg --with-gstreamer --with-java --with-libdc1394 --with-opengl
 if ! grep '/usr/local/opt/opencv3/lib/python2.7/site-packages' /usr/local/lib/python2.7/site-packages/opencv3.pth 2>/dev/null; then
 	echo /usr/local/opt/opencv3/lib/python2.7/site-packages >> /usr/local/lib/python2.7/site-packages/opencv3.pth
 	mkdir -p ~/.local/lib/python2.7/site-packages
 	echo 'import site; site.addsitedir("/usr/local/lib/python2.7/site-packages")' >> ~/.local/lib/python2.7/site-packages/homebrew.pth
 fi
-# gRPC
-brew_install openssl
-brew_install maven
-brew_install gradle
+# need the homebrew science source for OpenCV and hdf5
+brew_install hdf5
+# TODO: if Nvidia GPU is installed then add --with-cuda option
+brew_install opencv --c++11 --with-ffmpeg --with-gstreamer --with-java --with-libdc1394 --with-opengl
+if python -c "import sys;print sys.version" | grep -i 'anaconda\|continuum' >/dev/null 2>/dev/null; then
+	# Need to change some lines in opencv
+	echo "WARNING: You are using Anaconda python!. See http://caffe.berkeleyvision.org/install_osx.html" 
+	echo "--begin-snip-from-opencv-formula--"
+	brew cat opencv | grep 'PYTHON_LIBRARY\|PYTHON_INCLUDE_DIR'
+	echo "--end-snip-from-opencv-formula--"
+fi
 
