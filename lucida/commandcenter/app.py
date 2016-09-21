@@ -3,8 +3,7 @@ from __future__ import division
 from __future__ import unicode_literals
  
 import sys, glob, os 
-sys.path.insert(0, glob.glob(os.path.abspath(os.path.dirname(__file__)) + 
-	'/../../tools/thrift-0.9.3/lib/py/build/lib*')[0])
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
  
 from controllers import *
 from flask import *

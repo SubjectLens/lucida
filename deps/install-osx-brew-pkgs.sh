@@ -72,4 +72,7 @@ if python -c "import sys;print sys.version" | grep -i 'anaconda\|continuum' >/de
 	brew cat opencv | grep 'PYTHON_LIBRARY\|PYTHON_INCLUDE_DIR'
 	echo "--end-snip-from-opencv-formula--"
 fi
+# pseudo terminal
+brew tap homebrew/dupes
+brew_install screen 
 

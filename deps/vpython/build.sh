@@ -29,4 +29,5 @@ pip install --upgrade pip
 pip install -r $ROOTPATH/../tools/python_requirements.txt
 pip install grpcio
 pip install grpcio-tools
+pip install --upgrade numpy
 deactivate

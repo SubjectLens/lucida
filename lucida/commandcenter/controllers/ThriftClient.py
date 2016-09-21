@@ -1,10 +1,13 @@
+'''
 from lucidatypes.ttypes import QueryInput, QuerySpec
 from lucidaservice import LucidaService
 
 from thrift.transport import TSocket
 from thrift.transport import TTransport
 from thrift.protocol import TBinaryProtocol
-
+'''
+from lucidaservice import QueryInput, QuerySpec, Response, Request
+import grpc
 from Utilities import log
 from Database import database
 import Config
@@ -36,10 +39,9 @@ class ThriftClient(object):
 	
 	def get_client_transport(self, service):
 		host, port = service.get_host_port()
-		transport = TTransport.TFramedTransport(TSocket.TSocket(host, port))
-		protocol = TBinaryProtocol.TBinaryProtocol(transport)
-		transport.open()
-		return LucidaService.Client(protocol), transport
+		channel = grpc.insecure_channel('%s:%u' % (host, port))
+		stub = LucidaServiceStub(channel)
+		return (stub, channel)
 
 	def learn_image(self, LUCID, image_type, image_data, image_id):
 		for service in Config.Service.LEARNERS['image']: # add concurrency?
@@ -47,9 +49,11 @@ class ThriftClient(object):
 				image_type, image_data, [image_id])
 			client, transport = self.get_client_transport(service)
 			log('Sending learn_image request to IMM')
-			client.learn(str(LUCID), 
-				self.create_query_spec('knowledge', [knowledge_input]))
-			transport.close()
+			request = Request()
+			request.LUCID = str(LUCID)
+			request.spec  = self.create_query_spec('knowledge', [knowledge_input])
+			client.learn(request) 
+			#transport.close()
 	
 	def learn_text(self, LUCID, text_type, text_data, text_id):
 		for service in Config.Service.LEARNERS['text']: # add concurrency?
@@ -57,9 +61,11 @@ class ThriftClient(object):
 				text_type, text_data, [text_id])
 			client, transport = self.get_client_transport(service)
 			log('Sending learn_text request to QA')
-			client.learn(str(LUCID), 
-				self.create_query_spec('knowledge', [knowledge_input]))
-			transport.close()
+			request = Request()
+			request.LUCID = str(LUCID)
+			request.spec  = self.create_query_spec('knowledge', [knowledge_input])
+			client.learn(request) 
+			#transport.close()
 
 	def infer(self, LUCID, service_graph, text_data, image_data):
 		# Create the list of QueryInput.
@@ -81,8 +87,11 @@ class ThriftClient(object):
 				start_index).service_name]
 			client, transport = self.get_client_transport(service)
 			log('Sending infer request to ' + service.name)
-			result.append(client.infer(str(LUCID), query_spec))
-			transport.close()
+			request = Request()
+			request.LUCID = str(LUCID)
+			request.spec = query_spec
+			result.append(client.infer(Request).msg)
+			#transport.close()
 		return ' '.join(result)
 
 

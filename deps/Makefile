@@ -154,6 +154,14 @@ else
 	@$(SUDO) ./install-linux-pkgs.py -liv pnux_pkg_deps.conf
 endif
 endif
+endif
+	@if python -c "import sys;print sys.version" | grep -i 'anaconda\|continuum' >/dev/null 2>/dev/null; then \
+		then if which python | grep '^$(HOME)'; \
+			then pip install -r python_deps.txt; \
+			else sudo pip install -r python_deps.txt; \
+			fi; \
+		else sudo pip install -r python_deps.txt; \
+		fi
 
 install: $(INSTALL_TARGETS)
 

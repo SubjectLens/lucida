@@ -1,27 +1,48 @@
-all: thrift
+all: grpc
 
-thrift:
-	@if [ ! -d "lucidaservice" ]; then \
-		thrift --gen py ../lucidaservice.thrift; \
-		thrift --gen py ../lucidatypes.thrift; \
-		cd gen-py; \
-		mv * ..; \
-		cd ..; \
-		rmdir gen-py; \
-		rm __init__.py; \
-	fi
+# Input paths
+PYPLUGIN := $(shell which grpc_python_plugin)
+PROTOPATH = ../src/main/proto
+
+# List all input files here - no paths
+PROTOFILES = lucida_service.proto
+
+# Output path
+PYMODULEPATH = ./lucidaservice
+
+# List all output files here - no paths
+PYGRPCFILES = lucida_service_pb2.py
+
+$(addprefix $(PYMODULEPATH), $(addprefix /, $(PYGRPCFILES))): $(addprefix $(PYPROTOPATH), $(addprefix /, $(PYPROTOFILES)))
+	mkdir -p $(PYMODULEPATH)
+	protoc "--python_out=$(PYMODULEPATH)" "-I$(PROTOPATH)" "--plugin=protoc-gen-grpc=$(PYPLUGIN)" "--grpc_out=$(PYMODULEPATH)" $(addprefix $(PROTOPATH)/, $(PROTOFILES))
+	echo "# Auto-generated from Makefile">"$(PYMODULEPATH)/__init__.py"
+	for i in "$(basename $(PYGRPCFILES))";do echo "from $$i import *">>"$(PYMODULEPATH)/__init__.py";done 
+
+grpc: $(addprefix $(PYMODULEPATH), $(addprefix /, $(PYGRPCFILES)))
 
 clean:
-	rm -rf lucidaservice lucidatypes
+	rm -rf $(PYMODULEPATH)
 
 start_server:
-	gnome-terminal -x bash -c "source ${PWD}/../../tools/python_2_7_9/bin/activate && python app.py $(filter-out $@,$(MAKECMDGOALS)); read -n1"
+	@echo "=========================================================="
+	@echo "Attempting to start server in virtual console (gnu screen)"
+	@echo "  man screen for help"
+	@echo "  use 'ctrl-A d' to detach from the console"
+	@echo "  use 'screen -r commandcenter' to reattach"
+	@echo "  use 'screen -list to show all running consoles"
+	@echo "  starting detached..."
+	@screen -d -m -S commandcenter bash -c start_server.sh $(filter-out $@,$(MAKECMDGOALS))
+	
+stop_server:
+	./stop_server.sh
+# read -n1"
 
 docker:
-	cp ../lucidaservice.thrift .; \
-	cp ../lucidatypes.thrift .; \
+	for i in "$(addprefix $(PYPROTOPATH), $(addprefix /, $(PYPROTOFILES)))"; do \
+		cp $$i .; done; \
 	docker build -t lucida_cmd .; \
-	rm lucidaservice.thrift; \
-	rm lucidatypes.thrift;
+	for i in "$(PYPROTOFILES)"; do \
+		rm -f $$i; done
 
-.PHONY:	all venv thrift clean start_server docker
+.PHONY:	all grpc clean start_server docker
