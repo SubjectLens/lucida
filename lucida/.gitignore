@@ -2,4 +2,15 @@
 build.gradle
 build/
 .idea
-
+Makefile.in
+autom4te.cache/
+compile
+config.guess
+config.sub
+depcomp
+install-sh
+missing
+configure
+config.h.in
+aclocal.m4
+ltmain.sh

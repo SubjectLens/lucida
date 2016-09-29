@@ -4,6 +4,7 @@ import "google/protobuf/empty.proto";
 option java_multiple_files = true;
 option java_package = "ai.lucida.grpc";
 option java_outer_classname = "ServiceProto";
+//option cc_enable_arenas = true;
 
 package lucida;
 

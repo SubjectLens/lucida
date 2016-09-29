@@ -1,5 +1,6 @@
 /*
- * Copyright 2015, Google Inc. All rights reserved.
+ * Copyright 2016 (c). All rights reserved.
+ * Author: Paul Glendenning
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -12,7 +13,7 @@
  * in the documentation and/or other materials provided with the
  * distribution.
  *
- *    * Neither the name of Google Inc. nor the names of its
+ *    * Neither the name of the author, nor the names of other
  * contributors may be used to endorse or promote products derived from
  * this software without specific prior written permission.
  *
@@ -33,20 +34,14 @@ package ai.lucida.grpc;
 
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
-import io.grpc.stub.StreamObserver;
 
 import java.io.IOException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A sample gRPC server that serve the LucidaService (see route_guide.proto) service.
+ * A gRPC server for the LucidaService service.
  */
 public class ServiceAcceptor {
 	private static final Logger logger = LoggerFactory.getLogger(ServiceAcceptor.class);
