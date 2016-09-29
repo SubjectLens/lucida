@@ -14,3 +14,8 @@ configure
 config.h.in
 aclocal.m4
 ltmain.sh
+Makefile
+config.h
+config.status
+libtool
+stamp-h1
