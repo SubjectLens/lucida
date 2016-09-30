@@ -13,7 +13,7 @@ imcserver_LDFLAGS = -L$(CAFFE)/install/lib -lcaffe -lgrpc++ -lgrpc \
 
 imcserver_CPPFLAGS = $(CAFFE_CXXFLAGS) -I$(top_srcdir)/include -I$(CAFFE)/install/include
 
-imcserver_LDADD = $(top_builddir)/src/main/cpp/liblucida.la
+imcserver_LDADD = $(top_builddir)/src/main/cpp/lucida/liblucida.la
 
 .PHONY: start_server stop_server
 

@@ -4,23 +4,20 @@ AUTOMAKE_OPTIONS=foreign subdir-objects
 if IS_DEBUGON
 SUBDIRS= \
     include \
-    src/main/cpp \
+    src/main/cpp/lucida \
 	djinntonic/imc \
 	djinntonic/dig \
 	djinntonic/face
 else
 SUBDIRS= \
     include \
-    src/main/cpp \
+    src/main/cpp/lucida \
 	djinntonic/imc \
 	djinntonic/dig \
 	djinntonic/face
 endif
 
 EXTRADIST=\
-	include/lucida/generated/*.h \
-	src/main/cpp/generated/*.cc \
-	src/main/cpp/generated/*.h \
 	settings.gradle \
 	gradlew \
 	gradlew.bat \

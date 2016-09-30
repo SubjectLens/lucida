@@ -13,7 +13,7 @@ digserver_LDFLAGS = -L$(CAFFE)/install/lib -lcaffe -lgrpc++ -lgrpc \
 
 digserver_CPPFLAGS = $(CAFFE_CXXFLAGS) -I$(top_srcdir)/include -I$(CAFFE)/install/include
 
-digserver_LDADD = $(top_builddir)/src/main/cpp/liblucida.la
+digserver_LDADD = $(top_builddir)/src/main/cpp/lucida/liblucida.la
 
 .PHONY: start_server stop_server
 

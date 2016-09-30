@@ -1,7 +1,7 @@
 noinst_LTLIBRARIES=liblucida.la
 
 AUTOMAKE_OPTIONS=subdir-objects
-PROTOPATH=../proto
+PROTOPATH=../../proto
 
 # List all input files here - no paths
 PROTOFILES=lucida_service.proto
@@ -50,5 +50,5 @@ liblucida_la_SOURCES = \
 liblucida_la_CPPFLAGS = -I$(top_srcdir)/include
 
 # Always static linkage
-#liblucida_la_LDFLAGS = -static 
+liblucida_la_LDFLAGS = -static 
 

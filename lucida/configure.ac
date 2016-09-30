@@ -96,7 +96,7 @@ AC_CONFIG_FILES(
     [
     Makefile
     include/Makefile
-    src/main/cpp/Makefile
+    src/main/cpp/lucida/Makefile
 	djinntonic/face/Makefile
 	djinntonic/imc/Makefile
 	djinntonic/dig/Makefile
