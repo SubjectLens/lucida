@@ -6,12 +6,14 @@ SUBDIRS= \
     include \
     src/main/cpp \
 	djinntonic/imc \
+	djinntonic/dig \
 	djinntonic/face
 else
 SUBDIRS= \
     include \
     src/main/cpp \
 	djinntonic/imc \
+	djinntonic/dig \
 	djinntonic/face
 endif
 

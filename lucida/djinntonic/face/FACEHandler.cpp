@@ -70,7 +70,7 @@ FACEHandler::FACEHandler() {
 
 void FACEHandler::OnCreate(TypedCall<Request, ::google::protobuf::Empty>* call) {
 	using namespace ::grpc;
-	LOG(ERROR) << "Create is not implemented now!";
+	LOG(ERROR) << "Create is not implemented";
 	Status status(UNIMPLEMENTED, "faceserver::create is not implemented");
 	call->Finish(status);
 }
@@ -78,7 +78,7 @@ void FACEHandler::OnCreate(TypedCall<Request, ::google::protobuf::Empty>* call) 
 
 void FACEHandler::OnLearn(TypedCall<Request, ::google::protobuf::Empty>* call) {
 	using namespace ::grpc;
-	LOG(ERROR) << "Learn is not implemented now!"; 
+	LOG(ERROR) << "Learn is not implemented"; 
 	Status status(UNIMPLEMENTED, "faceserver::learn is not implemented");
 	call->Finish(status);
 }

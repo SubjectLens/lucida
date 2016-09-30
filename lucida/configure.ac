@@ -99,6 +99,7 @@ AC_CONFIG_FILES(
     src/main/cpp/Makefile
 	djinntonic/face/Makefile
 	djinntonic/imc/Makefile
+	djinntonic/dig/Makefile
     ])
 
 AC_SUBST(AM_CXXFLAGS)

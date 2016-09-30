@@ -1,8 +1,7 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
-
-#include <thrift/lib/cpp2/server/ThriftServer.h>
-
+#include <sstream>
+#include <csignal>
 #include "DIGHandler.h"
 
 DEFINE_int32(port,
@@ -13,26 +12,39 @@ DEFINE_int32(num_of_threads,
              4,
              "Number of threads (default: 4)");
 
-using namespace apache::thrift;
-using namespace apache::thrift::async;
+using namespace lucida;
 
-using namespace cpp2;
-//using namespace facebook::windtunnel::treadmill::services::dig;
+namespace {
+	std::shared_ptr<AsyncServiceAcceptor> server_for_signal;
+	bool shutdown = false;
+}
+
+void SignalShutdown(int) {
+	server_for_signal->Shutdown();
+}
 
 int main(int argc, char* argv[]) {
-  google::InitGoogleLogging(argv[0]);
-  google::ParseCommandLineFlags(&argc, &argv, true);
+	google::InitGoogleLogging(argv[0]);
+	google::ParseCommandLineFlags(&argc, &argv, true);
 
-  auto handler = std::make_shared<DIGHandler>();
-  auto server = folly::make_unique<ThriftServer>();
+	// Prep
+	std::ostringstream os;
+	os << "localhost:"<< FLAGS_port;
+	std::shared_ptr<AsyncServiceAcceptor> server(new AsyncServiceAcceptor(new DIGHandler, "digserver"));
+	server_for_signal = server;
 
-  server->setPort(FLAGS_port);
-  server->setNWorkerThreads(FLAGS_num_of_threads);
-  server->setInterface(std::move(handler));
-  server->setIdleTimeout(std::chrono::milliseconds(0));
-  server->setTaskExpireTime(std::chrono::milliseconds(0));
+	// Catch Ctrl-C and shutdown if received
+	struct sigaction action = { 0 };
+	struct sigaction actionPrev = { 0 };
+	action.sa_handler = SignalShutdown;
+	action.sa_flags |= 0;
+	sigaction(SIGINT, &action, &actionPrev);
+	
+	// Start receiving RPC's
+	server->Start(os.str(), FLAGS_num_of_threads);
 
-  server->serve();
-
-  return 0;
+	// Wait until shutdown
+	server->BlockUntilShutdown();
+	sigaction(SIGINT, &actionPrev, NULL);
+	return 0;
 }

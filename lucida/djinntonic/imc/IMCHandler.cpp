@@ -66,7 +66,7 @@ IMCHandler::IMCHandler() {
 
 void IMCHandler::OnCreate(TypedCall<Request, ::google::protobuf::Empty>* call) {
 	using namespace ::grpc;
-	LOG(ERROR) << "Create is not implemented now!";
+	LOG(ERROR) << "Create is not implemented";
 	Status status(UNIMPLEMENTED, "imcserver::create is not implemented");
 	call->Finish(status);
 }
@@ -74,7 +74,7 @@ void IMCHandler::OnCreate(TypedCall<Request, ::google::protobuf::Empty>* call) {
 
 void IMCHandler::OnLearn(TypedCall<Request, ::google::protobuf::Empty>* call) {
 	using namespace ::grpc;
-	LOG(ERROR) << "Learn is not implemented now!"; 
+	LOG(ERROR) << "Learn is not implemented"; 
 	Status status(UNIMPLEMENTED, "imcserver::learn is not implemented");
 	call->Finish(status);
 }
@@ -86,7 +86,7 @@ void IMCHandler::OnInfer(TypedCall<Request, Response>* call) {
 	if (!call->request_.has_spec() ||
 		call->request_.spec().content_size() != 1 ||
 		call->request_.spec().content(0).data_size() != 1) {
-		Status status(FAILED_PRECONDITION, "facerserver::infer expects content and data");
+		Status status(FAILED_PRECONDITION, "imcserver::infer expects content and data");
 		call->Finish(status);
 	}
 	// In our gRPC implmentation the server call back is already running in a
@@ -130,6 +130,7 @@ void IMCHandler::OnInfer(TypedCall<Request, Response>* call) {
 		os << "imcserver::infer jpeg error - " << jpegLastErrorMsg;
 		Status status(INVALID_ARGUMENT, os.str());
 		call->Finish(status);
+		return;
 	}
 
 	jpeg_create_decompress(&cinfo);
