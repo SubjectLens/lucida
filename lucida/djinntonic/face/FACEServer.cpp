@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
 	sigaction(SIGINT, &action, &actionPrev);
 	
 	// Start receiving RPC's
-	server->Start(os.str());
+	server->Start(os.str(), FLAGS_num_of_threads);
 
 	// Wait until shutdown
 	server->BlockUntilShutdown();

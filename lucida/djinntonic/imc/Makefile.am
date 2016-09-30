@@ -1,19 +1,19 @@
-bin_PROGRAMS = faceserver
+bin_PROGRAMS = imcserver
 
-faceserver_SOURCES = \
-	FACEHandler.h \
-	FACEHandler.cpp \
-	FACEServer.cpp
+imcserver_SOURCES = \
+	IMCHandler.h \
+	IMCHandler.cpp \
+	IMCServer.cpp
 
 CAFFE = $(top_srcdir)/../deps/caffe/BUILD/caffe
 
-faceserver_LDFLAGS = -L$(CAFFE)/install/lib -lcaffe -lgrpc++ -lgrpc \
+imcserver_LDFLAGS = -L$(CAFFE)/install/lib -lcaffe -lgrpc++ -lgrpc \
             -lgflags -lglog -lpthread -lprotobuf -ljpeg -lboost_system
 ## -levent
 
-faceserver_CPPFLAGS = $(CAFFE_CXXFLAGS) -I$(top_srcdir)/include -I$(CAFFE)/install/include
+imcserver_CPPFLAGS = $(CAFFE_CXXFLAGS) -I$(top_srcdir)/include -I$(CAFFE)/install/include
 
-faceserver_LDADD = $(top_builddir)/src/main/cpp/liblucida.la
+imcserver_LDADD = $(top_builddir)/src/main/cpp/liblucida.la
 
 .PHONY: start_server stop_server
 

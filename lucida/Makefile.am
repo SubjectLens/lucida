@@ -5,11 +5,13 @@ if IS_DEBUGON
 SUBDIRS= \
     include \
     src/main/cpp \
+	djinntonic/imc \
 	djinntonic/face
 else
 SUBDIRS= \
     include \
     src/main/cpp \
+	djinntonic/imc \
 	djinntonic/face
 endif
 

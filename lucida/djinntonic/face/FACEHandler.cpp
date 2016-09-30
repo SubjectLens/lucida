@@ -79,7 +79,7 @@ void FACEHandler::OnCreate(TypedCall<Request, ::google::protobuf::Empty>* call) 
 void FACEHandler::OnLearn(TypedCall<Request, ::google::protobuf::Empty>* call) {
 	using namespace ::grpc;
 	LOG(ERROR) << "Learn is not implemented now!"; 
-	Status status(UNIMPLEMENTED, "facserver::learn is not implemented");
+	Status status(UNIMPLEMENTED, "faceserver::learn is not implemented");
 	call->Finish(status);
 }
 

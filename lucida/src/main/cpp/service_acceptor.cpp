@@ -54,7 +54,7 @@ AsyncServiceAcceptor::~AsyncServiceAcceptor() {
 }
 
 
-bool AsyncServiceAcceptor::Start(const std::string& hostAndPort) {
+bool AsyncServiceAcceptor::Start(const std::string& hostAndPort, unsigned threads) {
 	{
 		std::lock_guard<std::mutex> guard(mu_);
 		if (state_ != INIT) return false;
@@ -78,7 +78,7 @@ bool AsyncServiceAcceptor::Start(const std::string& hostAndPort) {
 }
 
 
-bool AsyncServiceAcceptor::Start(grpc::ServerBuilder& builder) {
+bool AsyncServiceAcceptor::Start(grpc::ServerBuilder& builder, unsigned threads) {
 	{
 		std::lock_guard<std::mutex> guard(mu_);
 		if (state_ != INIT) return false;

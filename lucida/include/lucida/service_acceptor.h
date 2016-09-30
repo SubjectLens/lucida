@@ -67,33 +67,37 @@ private:
 public:
 	/// Create a service adaptor. 
 	///
-	/// @param[in]	service The service used to handle requests.
-	/// @param[in]	name	The service name used in logs.
+	/// @param[in]  service The service used to handle requests.
+	/// @param[in  name     The service name used in logs.
 	/// @remarks Takes ownership of the service.
 	AsyncServiceAcceptor(AsyncServiceHandler* service, const std::string& name);
 	~AsyncServiceAcceptor();
 
 	/// Start serving requests on hostAndPort.
 	///
-	/// @param[in]	hostAndPort	The hostname, or ipv4 address, and port.
-	/// @return		True if successful.
+	/// @param[in]  hostAndPort     The hostname, or ipv4 address, and port.
+	/// @param[in]  workerThreads   Sets the number of worker threads to handle
+	///             requests. Zero for default.t
+	/// @return     True if successful.
 	/// @remarks    If successful, returns after shutdown completes.
-	bool Start(const std::string& hostAndPort);
+	bool Start(const std::string& hostAndPort, unsigned workerThreads=0);
 
 	/// Start serving requests on hostAndPort.
 	///
-	/// @param[in]	hostAndPort	The hostname, or ipv4 address, and port.
-	/// @return		True if successful.
+	/// @param[in]  builder The server builder.
+	/// @param[in]  workerThreads   Sets the number of worker threads to handle
+	///             requests. Zero for default.t
+	/// @return     True if successful.
 	/// @remarks    If successful, returns after shutdown completes.
-	bool Start(grpc::ServerBuilder& builder);
+	bool Start(grpc::ServerBuilder& builder, unsigned workerThreads=0);
 
 	/// Initiate shutdown. Typically called in a signal handler.
-	/// @remarks Threadsafe 
+	/// @remarks Threadsafe
 	void Shutdown();
 	
 	/// Blocks the calling thread until shutdown has completed.
-	/// @param[in]	maxWaitTimeInSeconds A timeout.
-	/// @return		True if the shutdown completed, false on timeout.
+	/// @param[in]  maxWaitTimeInSeconds A timeout.
+	/// @return     True if the shutdown completed, false on timeout.
 	bool BlockUntilShutdown(unsigned maxWaitTimeInSeconds=0);
 };
 
