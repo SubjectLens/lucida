@@ -4,11 +4,13 @@ AUTOMAKE_OPTIONS=foreign subdir-objects
 if IS_DEBUGON
 SUBDIRS= \
     include \
-    src/main/cpp
+    src/main/cpp \
+	djinntonic/face
 else
 SUBDIRS= \
     include \
-    src/main/cpp
+    src/main/cpp \
+	djinntonic/face
 endif
 
 EXTRADIST=\

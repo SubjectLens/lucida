@@ -38,7 +38,7 @@
 #include <grpc++/server_builder.h>
 #include <grpc++/server_context.h>
 #include <grpc++/security/server_credentials.h>
-#include <boost/log/trivial.hpp>
+#include <glog/logging.h>
 #include "generated/lucida_service.grpc.pb.h"
 #include "generated/lucida_service.pb.h"
 
@@ -110,6 +110,26 @@ public:
 	TypedCall(const TypedCall&) = delete;
 	TypedCall& operator = (const TypedCall&) = delete;
 
+	/// Call this if you need to change the status code, for example INVALID_ARGUMENT.
+	/// If Finish is not called by the AsyncServiceHandleir then it will be called 
+	/// by the default processing with ::grpc::Status::OK
+	void Finish(const ::grpc::Status& status = ::grpc::Status::OK) {
+		if (FINISH != status_) {
+			status_ = FINISH;
+			LOG_IF(ERROR, !status.ok()) << "gRPC handler reported status-code=" << int(status.error_code()) << " and message=\'" << status.error_message() << "\'";
+			responder_.Finish(response_, status, this);
+		}
+	}
+
+	/// Call this to report an error
+	void FinishWithError(const ::grpc::Status& status) {
+		if (FINISH != status_) {
+			status_ = FINISH;
+			LOG(ERROR) << "gRPC handler reported status-code=" << int(status.error_code()) << " and message=\'" << status.error_message() << "\'";
+			responder_.FinishWithError(status, this);
+		}
+	}
+
 	void Proceed(bool ok) override {
 		if (status_ == CREATE) {
 			// Make this instance progress to the PROCESS state.
@@ -124,12 +144,7 @@ public:
 		} else if (status_ == PROCESS) {
 			// The actual processing.
 			(service_->*handler_)(this, ok); 
-
-			// And we are done! Let the gRPC runtime know we've finished, using the
-			// memory address of this instance as the uniquely identifying tag for
-			// the event.
-			status_ = FINISH;
-			responder_.Finish(response_, ::grpc::Status::OK, this);
+			Finish();
 		} else {
 			assert(status_ == FINISH);
 			// Once in the FINISH state, deallocate ourselves (TypedCall).

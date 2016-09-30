@@ -12,6 +12,7 @@ install-sh
 missing
 configure
 config.h.in
+config.h.in~
 aclocal.m4
 ltmain.sh
 Makefile
@@ -19,3 +20,4 @@ config.h
 config.status
 libtool
 stamp-h1
+tags

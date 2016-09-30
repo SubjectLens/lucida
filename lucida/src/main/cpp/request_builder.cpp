@@ -32,7 +32,6 @@
 
 #include <lucida/request_builder.h>
 #include <lucida/service_names.h>
-#include <boost/log/trivial.hpp>
 #include <chrono>
 
 namespace lucida {
@@ -84,7 +83,6 @@ void RequestBuilder::SyncReset(unsigned timeoutInSecs) {
 }
 
 Request* RequestBuilder::PrepareLearnRequest(const std::string& id) {
-	BOOST_LOG_TRIVIAL(info) << "BLD.Learn " << ServiceNames::learnCommandName << " variant " << id;
 	Request* request = New<Request>();
 	request->set_lucid(id);
 	QuerySpec* spec = New<QuerySpec>();
@@ -94,7 +92,6 @@ Request* RequestBuilder::PrepareLearnRequest(const std::string& id) {
 }
 
 Request* RequestBuilder::PrepareInferRequest(const std::string& id) {
-	BOOST_LOG_TRIVIAL(info) << "BLD.Create " << ServiceNames::inferCommandName << " variant " << id;
 	Request* request = New<Request>();
 	request->set_lucid(id);
 	QuerySpec* spec = New<QuerySpec>();
@@ -104,7 +101,6 @@ Request* RequestBuilder::PrepareInferRequest(const std::string& id) {
 }
 
 Request* RequestBuilder::BuildCreateRequest(const std::string& id) {
-	BOOST_LOG_TRIVIAL(info) << "BLD.Create " << ServiceNames::createCommandName << " variant " << id;
 	Request* request = New<Request>();
 	request->set_lucid(id);
 	QuerySpec* spec = New<QuerySpec>();

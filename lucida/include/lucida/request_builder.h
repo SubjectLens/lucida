@@ -37,7 +37,6 @@
 #include <grpc++/server_builder.h>
 #include <grpc++/server_context.h>
 #include <grpc++/security/server_credentials.h>
-#include <boost/log/trivial.hpp>
 #include <google/protobuf/arena.h>
 #include <future>
 #include <memory>

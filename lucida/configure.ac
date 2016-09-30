@@ -6,16 +6,47 @@ AC_CANONICAL_SYSTEM
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([-Wno-portability])
 
-case "$host" in
-x86_64-*Darwin*)
-    OS="Darwin";ARCH="x86_64";;
-i386-*Darwin*)
-    OS="Darwin";ARCH="x86";;
-i686-*linux* | i586-*linux*)
-    OS="Linux";ARCH="x86";;
-x86_64*linux*)
-    OS="Linux";ARCH="x86_64";;
-esac
+dnl ---------------------------------------------------------------------------
+dnl Determine platform and architecture 
+
+AC_MSG_CHECKING([platform version])
+AS_IF(
+	[python -mplatform | grep -qi ubuntu],
+	[PLATFORM_NAME="Ubuntu";PLATFORM_TYPE="deb";],
+	[AS_IF(
+		[python -mplatform | grep -qi debian],
+		[PLATFORM_NAME="Debian";PLATFORM_TYPE="deb";],
+		[AS_IF(
+			[python -mplatform | grep -qi darwin],
+			[PLATFORM_NAME="Darwin";PLATFORM_TYPE="osx";],
+			[AS_IF(
+				[python -mplatform | grep -qi 'redhat\|rhel'],
+				[PLATFORM_NAME="RHEL";PLATFORM_TYPE="rpm";],
+				[AS_IF(
+					[python -mplatform | grep -qi "centos"],
+					[PLATFORM_NAME="CentOS";PLATFORM_TYPE="rpm";],
+					[PLATFORM_NAME="Unknown";PLATFORM_TYPE="rpm";]
+				)]
+			)]
+		)]
+	)]
+)
+
+PLATFORM_MAJOR_VERSION=[$(python -mplatform | sed 's/^.*with[^0-9]*\([0-9]\+\)\([^0-9].*$\|$\)/\1/g')]
+AC_MSG_RESULT([$PLATFORM_NAME $PLATFORM_MAJOR_VERSION])
+
+AM_CONDITIONAL(PLATFORM_UBUNTU, [test "x$PLATFORM_NAME" = "xUbuntu"])
+AM_CONDITIONAL(PLATFORM_DEBIAN, [test "x$PLATFORM_NAME" = "xDebian"])
+AM_CONDITIONAL(PLATFORM_DARWIN, [test "x$PLATFORM_NAME" = "xDarwin"])
+AM_CONDITIONAL(PLATFORM_EL, [test "x$PLATFORM_NAME" = "xRHEL" -o "x$PLATFORM_NAME" = "xCentOS"])
+
+AC_MSG_CHECKING([architecture])
+AS_IF([python -mplatform | grep -qi x86_64], [ARCH="x86_64";], [ARCH="i386";])
+AC_MSG_RESULT([$ARCH])
+
+# Setup include paths
+AM_COND_IF([PLATFORM_DARWIN],
+	[AM_CXXFLAGS="-I/System/Library/Frameworks/Accelerate.framework/Versions/Current/Frameworks/vecLib.framework/Versions/Current/Headers"])
 
 dnl ---------------------------------------------------------------------------
 dnl Environment checks
@@ -30,10 +61,7 @@ AC_PROG_MKDIR_P
 AC_HEADER_STDC([])
 
 dnl Always use C11
-AM_CXXFLAGS="-std=c++11 -Wno-deprecated"
-
-AM_CONDITIONAL(IS_OSX, [test x$OS = xDarwin])
-AM_CONDITIONAL(IS_X64, [test x$ARCH = xx86_64])
+AM_CXXFLAGS="${AM_CXXFLAGS} -std=c++11 -Wno-deprecated"
 
 dnl ---------------------------------------------------------------------------
 dnl Place this copyright notice in generated configure
@@ -62,16 +90,18 @@ AS_IF([test "x$CPP_PLUGIN" = "x"],
 AC_MSG_CHECKING([gRPC plugin])
 AC_MSG_RESULT([$CPP_PLUGIN])
 
-
+CAFFE_CXXFLAGS=`../scripts/caffe_cxxflags.sh`
 dnl ---------------------------------------------------------------------------
 AC_CONFIG_FILES(
     [
     Makefile
     include/Makefile
     src/main/cpp/Makefile
+	djinntonic/face/Makefile
     ])
 
 AC_SUBST(AM_CXXFLAGS)
 AC_SUBST(CPP_PLUGIN)
+AC_SUBST(CAFFE_CXXFLAGS)
 AC_OUTPUT
 

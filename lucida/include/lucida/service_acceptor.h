@@ -40,7 +40,6 @@
 #include <grpc++/server_context.h>
 #include <grpc++/security/server_credentials.h>
 #include <grpc++/alarm.h>
-#include <boost/log/trivial.hpp>
 #include "generated/lucida_service.grpc.pb.h"
 #include "generated/lucida_service.pb.h"
 #include "call.h"
@@ -53,7 +52,7 @@ namespace lucida {
 class AsyncServiceAcceptor {
 protected:
 	enum State { INIT, STARTED, SHUTDOWN, ERROR };
-	AsyncServiceHandler* service_;
+	std::unique_ptr<AsyncServiceHandler> service_;
 	std::unique_ptr<::grpc::ServerCompletionQueue> cq_;
 	std::unique_ptr<::grpc::Server> server_;
 	std::unique_ptr<::grpc::Alarm> shutdownAlarm_;
@@ -66,10 +65,11 @@ protected:
 private:
 	void HandleRpcs();
 public:
-	/// Create a service adaptor.
+	/// Create a service adaptor. 
 	///
 	/// @param[in]	service The service used to handle requests.
 	/// @param[in]	name	The service name used in logs.
+	/// @remarks Takes ownership of the service.
 	AsyncServiceAcceptor(AsyncServiceHandler* service, const std::string& name);
 	~AsyncServiceAcceptor();
 

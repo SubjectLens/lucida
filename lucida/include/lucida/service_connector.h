@@ -36,7 +36,6 @@
 #include <thread>
 #include <atomic>
 #include <grpc++/grpc++.h>
-#include <boost/log/trivial.hpp>
 #include "generated/lucida_service.grpc.pb.h"
 #include "generated/lucida_service.pb.h"
 #include "refcount.h"

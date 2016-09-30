@@ -30,7 +30,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <lucida/service_acceptor.h>
-#include <boost/log/trivial.hpp>
+#include <glog/logging.h>
 
 using grpc::Server;
 using grpc::ServerBuilder;
@@ -63,16 +63,16 @@ bool AsyncServiceAcceptor::Start(const std::string& hostAndPort) {
 	ServerBuilder builder;
 
 	builder.AddListeningPort(hostAndPort, grpc::InsecureServerCredentials())
-		.RegisterService(service_);
+		.RegisterService(service_.get());
 	cq_ = builder.AddCompletionQueue();
 	server_ = builder.BuildAndStart();
 	if (server_.get() == nullptr) {
-		BOOST_LOG_TRIVIAL(error) << serviceName_ << " async server failed to start";
+		LOG(ERROR) << "Async server failed to start";
 		std::lock_guard<std::mutex> guard(mu_);
 		state_ = ERROR;
 		return false;
 	}
-	BOOST_LOG_TRIVIAL(info) << serviceName_ << " async server listening on " << hostAndPort;
+	LOG(INFO) << "Async server listening on " << hostAndPort;
 	HandleRpcs();
 	return true;
 }
@@ -84,16 +84,16 @@ bool AsyncServiceAcceptor::Start(grpc::ServerBuilder& builder) {
 		if (state_ != INIT) return false;
 		state_ = STARTED;
 	}
-	builder.RegisterService(service_);
+	builder.RegisterService(service_.get());
 	cq_ = builder.AddCompletionQueue();
 	server_ = builder.BuildAndStart();
 	if (server_.get() == nullptr) {
-		BOOST_LOG_TRIVIAL(error) << serviceName_ <<" async server failed to start";
+		LOG(ERROR) << "Async server failed to start";
 		std::lock_guard<std::mutex> guard(mu_);
 		state_ = ERROR;
 		return false;
 	}
-	BOOST_LOG_TRIVIAL(info) << serviceName_ << " async server started";
+	LOG(INFO) << "Async server started";
 	HandleRpcs();
 	return true;
 }
@@ -105,7 +105,7 @@ void AsyncServiceAcceptor::Shutdown() {
 	{
 		std::lock_guard<std::mutex> guard(mu_);
 		if (state_ == STARTED) {
-			BOOST_LOG_TRIVIAL(info) << serviceName_ << " shutting down";
+			LOG(INFO) << "Initiating shutdown";
 			state_ = SHUTDOWN;
 			did_shutdown = true;
 		}
@@ -126,9 +126,9 @@ void AsyncServiceAcceptor::HandleRpcs() {
 	{
 		std::lock_guard<std::mutex> guard(mu_);
 		if (STARTED == state_) {
-	        new TypedCall<Request, ::google::protobuf::Empty>(service_, &AsyncServiceHandler::Requestcreate, &AsyncServiceHandler::CreateCallback, cq_.get());
-	        new TypedCall<Request, ::google::protobuf::Empty>(service_, &AsyncServiceHandler::Requestlearn, &AsyncServiceHandler::LearnCallback, cq_.get());
-	        new TypedCall<Request, Response>(service_, &AsyncServiceHandler::Requestinfer, &AsyncServiceHandler::InferCallback, cq_.get());
+	        new TypedCall<Request, ::google::protobuf::Empty>(service_.get(), &AsyncServiceHandler::Requestcreate, &AsyncServiceHandler::CreateCallback, cq_.get());
+	        new TypedCall<Request, ::google::protobuf::Empty>(service_.get(), &AsyncServiceHandler::Requestlearn, &AsyncServiceHandler::LearnCallback, cq_.get());
+	        new TypedCall<Request, Response>(service_.get(), &AsyncServiceHandler::Requestinfer, &AsyncServiceHandler::InferCallback, cq_.get());
 		}
 		else if (SHUTDOWN != state_)
 			return;
@@ -168,6 +168,7 @@ void AsyncServiceAcceptor::HandleRpcs() {
 			state_ = SHUTDOWN;
 		}
 	}
+	LOG(INFO) << "Shutdown completed";
 	shutdownPromise_.set_value();
 }
 
