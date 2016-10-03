@@ -58,8 +58,9 @@ protected:
 public:
 	virtual ~RpcCall() {}
 	const ::grpc::Status& GetStatus() const { return status_; }
-	bool IsOK() const { return ok_; }
-	std::future<void>& GetFuture();
+	bool IsOK() const { return ok_ && status_.ok(); }
+    bool Wait(unsigned timeoutInSeconds=0) const;
+	std::future<void>& GetFuture() { return fut_; }
 	/// Get the response
 	virtual bool Get(::google::protobuf::Empty*& p) { p=nullptr; return false; } 
 	virtual bool Get(Response*& p) { p=nullptr; return false; } 
@@ -87,13 +88,13 @@ private:
 		} 
 	};
 
-	::grpc::CompletionQueue cq_;
+	std::shared_ptr<::grpc::CompletionQueue> cq_;
 	::grpc::ClientContext context_;
 	std::shared_ptr<::grpc::Channel> channel_;
 	std::unique_ptr<LucidaService::Stub> stub_;
 	std::thread cqThread_;
 	std::atomic<unsigned> errorCount_;
-	bool running_;
+	std::atomic<bool> runningAsync_;
 public:
 	AsyncServiceConnector(const char* hostAndPort);
 	AsyncServiceConnector(std::shared_ptr<::grpc::Channel> channel);
@@ -139,5 +140,13 @@ inline ::grpc::Status AsyncServiceConnector::create(const Request& request, ::gr
 inline ::grpc::Status AsyncServiceConnector::infer(const Request& request, Response& response, ::grpc::ClientContext* context) {
 	return stub_->infer((context == nullptr)? &context_: context, request, &response);
 }
+inline bool RpcCall::Wait(unsigned timeoutInSeconds) const {
+    if (0 == timeoutInSeconds) {
+        fut_.wait();
+        return true;
+    }
+	return std::future_status::ready == fut_.wait_for(std::chrono::seconds(timeoutInSeconds));
+}
+
 }		// namespace lucida
 #endif	// SERVICE_CONNECTOR_H_C20388E5_21FE_4195_86F9_ED8E5772041A

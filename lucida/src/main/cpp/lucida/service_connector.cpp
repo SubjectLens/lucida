@@ -31,6 +31,7 @@
  */
 #include <lucida/service_connector.h>
 #include <grpc++/alarm.h>
+#include <glog/logging.h>
 
 using ::google::protobuf::Empty;
 using ::grpc::Channel;
@@ -42,13 +43,13 @@ namespace lucida {
 
 AsyncServiceConnector::AsyncServiceConnector(const char* hostAndPort):
 	channel_(::grpc::CreateChannel(hostAndPort, ::grpc::InsecureChannelCredentials())),
-	stub_(LucidaService::NewStub(channel_)), errorCount_(0), running_(false) {
+	stub_(LucidaService::NewStub(channel_)), errorCount_(0), runningAsync_(false) {
 }
 
 
 AsyncServiceConnector::AsyncServiceConnector(std::shared_ptr<Channel> channel):
 	channel_(channel), stub_(LucidaService::NewStub(channel)), 
-	errorCount_(0), running_(false) {
+	errorCount_(0), runningAsync_(false) {
 }
 
 AsyncServiceConnector::~AsyncServiceConnector() {
@@ -56,11 +57,23 @@ AsyncServiceConnector::~AsyncServiceConnector() {
 }
 
 void AsyncServiceConnector::Start() {
-	auto functor = [](CompletionQueue& cq, std::atomic<unsigned>& errs) ->void {
+    // FIXME: should either use atomic load or mutex and 
+    if (runningAsync_.exchange(true)) return;
+	cq_.reset(new CompletionQueue);
+	auto functor = [](std::shared_ptr<CompletionQueue> cq, std::atomic<unsigned>& errs) ->void {
 		bool ok;
 		void* tag;
-		while (cq.Next(&tag, &ok)) {
+#ifdef DEBUG
+            LOG(INFO) << "AsyncServiceConnector: worker thread started cq<" << cq << ">";
+#endif        
+		while (cq->Next(&tag, &ok)) {
+#ifdef DEBUG
+            LOG(INFO) << "AsyncServiceConnector: got tag<" << tag << ">";
+#endif
 			if (tag == nullptr) {
+#ifdef DEBUG
+                LOG(INFO) << "AsyncServiceConnector: shutdown received";
+#endif
 				// Shutdown requested
 				break;
 			}
@@ -69,28 +82,30 @@ void AsyncServiceConnector::Start() {
 			static_cast<RpcCall*>(tag)->promise_.set_value();
 			static_cast<RpcCall*>(tag)->Unref();
 		}
-		cq.Shutdown();
+		cq->Shutdown();
 	};
-	cqThread_ = std::thread(functor, std::ref(cq_), std::ref(errorCount_));
-	running_ = true;
+	cqThread_ = std::thread(functor, cq_, std::ref(errorCount_));
 }
 
 
 void AsyncServiceConnector::Shutdown() {
 	// This enqueues a special event (with a null tag) that causes the completion
 	// queue to be shut down on the polling thread.
-	if (running_) {
-		std::unique_ptr<::grpc::Alarm> a(new ::grpc::Alarm(&cq_, gpr_now(GPR_CLOCK_MONOTONIC), nullptr));
+	if (runningAsync_.load()) {
+#ifdef DEBUG
+        LOG(INFO) << "AsyncServiceConnector: shutdown initiated.";
+#endif
+		std::unique_ptr<::grpc::Alarm> a(new ::grpc::Alarm(cq_.get(), gpr_now(GPR_CLOCK_MONOTONIC), nullptr));
 		cqThread_.join();
-		running_ = false;
+		runningAsync_ = false;
 	}
 }
 
 
 std::shared_ptr<RpcCall> AsyncServiceConnector::learnAsync(const Request& request, ::grpc::ClientContext* context) {
 	typedef TypedRpcCall<Empty> _RpcCall;
-	assert(running_);
-	_RpcCall* tag = new _RpcCall(stub_->Asynclearn((context == nullptr)? &context_: context, request, &cq_));
+	assert(runningAsync_.load());
+	_RpcCall* tag = new _RpcCall(stub_->Asynclearn((context == nullptr)? &context_: context, request, cq_.get()));
 	tag->Ref(); // one for worker thread
 	tag->Finish();
 	return std::shared_ptr<RpcCall>(dynamic_cast<RpcCall*>(tag), RefDeleter<RpcCall>());
@@ -99,8 +114,8 @@ std::shared_ptr<RpcCall> AsyncServiceConnector::learnAsync(const Request& reques
 
 std::shared_ptr<RpcCall> AsyncServiceConnector::createAsync(const Request& request, ::grpc::ClientContext* context) {
 	typedef TypedRpcCall<Empty> _RpcCall;
-	assert(running_);
-	_RpcCall* tag = new _RpcCall(stub_->Asynccreate((context == nullptr)? &context_: context, request, &cq_));
+	assert(runningAsync_.load());
+	_RpcCall* tag = new _RpcCall(stub_->Asynccreate((context == nullptr)? &context_: context, request, cq_.get()));
 	tag->Ref(); // one for worker thread
 	tag->Finish();
 	return std::shared_ptr<RpcCall>(dynamic_cast<RpcCall*>(tag), RefDeleter<RpcCall>());
@@ -109,8 +124,8 @@ std::shared_ptr<RpcCall> AsyncServiceConnector::createAsync(const Request& reque
 
 std::shared_ptr<RpcCall> AsyncServiceConnector::inferAsync(const Request& request, ::grpc::ClientContext* context) {
 	typedef TypedRpcCall<Response> _RpcCall;
-	assert(running_);
-	_RpcCall* tag = new _RpcCall(stub_->Asyncinfer((context == nullptr)? &context_: context, request, &cq_)); 
+	assert(runningAsync_.load());
+	_RpcCall* tag = new _RpcCall(stub_->Asyncinfer((context == nullptr)? &context_: context, request, cq_.get())); 
 	tag->Ref(); // one for worker thread
 	tag->Finish();
 	return std::shared_ptr<RpcCall>(dynamic_cast<RpcCall*>(tag), RefDeleter<RpcCall>());

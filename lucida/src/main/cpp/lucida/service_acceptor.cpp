@@ -67,12 +67,12 @@ bool AsyncServiceAcceptor::Start(const std::string& hostAndPort, unsigned thread
 	cq_ = builder.AddCompletionQueue();
 	server_ = builder.BuildAndStart();
 	if (server_.get() == nullptr) {
-		LOG(ERROR) << "Async server failed to start";
+		LOG(ERROR) << "AsyncServiceAcceptor: failed to start";
 		std::lock_guard<std::mutex> guard(mu_);
 		state_ = ERROR;
 		return false;
 	}
-	LOG(INFO) << "Async server listening on " << hostAndPort;
+	LOG(INFO) << "AsyncServiceAcceptor: server started->listening on " << hostAndPort;
 	HandleRpcs();
 	return true;
 }
@@ -88,12 +88,12 @@ bool AsyncServiceAcceptor::Start(grpc::ServerBuilder& builder, unsigned threads)
 	cq_ = builder.AddCompletionQueue();
 	server_ = builder.BuildAndStart();
 	if (server_.get() == nullptr) {
-		LOG(ERROR) << "Async server failed to start";
+		LOG(ERROR) << "AsyncServiceAcceptor: failed to start";
 		std::lock_guard<std::mutex> guard(mu_);
 		state_ = ERROR;
 		return false;
 	}
-	LOG(INFO) << "Async server started";
+	LOG(INFO) << "AsyncServiceAcceptor: server started";
 	HandleRpcs();
 	return true;
 }
@@ -105,7 +105,7 @@ void AsyncServiceAcceptor::Shutdown() {
 	{
 		std::lock_guard<std::mutex> guard(mu_);
 		if (state_ == STARTED) {
-			LOG(INFO) << "Initiating shutdown";
+			LOG(INFO) << "AsyncServiceAcceptor: initiating shutdown";
 			state_ = SHUTDOWN;
 			did_shutdown = true;
 		}
@@ -122,20 +122,22 @@ void AsyncServiceAcceptor::Shutdown() {
 // This can be run in multiple threads if needed.
 void AsyncServiceAcceptor::HandleRpcs() {
 	// Spawn a new CallData instance to serve new clients.
-	bool shutdown = false;
-	{
-		std::lock_guard<std::mutex> guard(mu_);
-		if (STARTED == state_) {
-	        new TypedCall<Request, ::google::protobuf::Empty>(service_.get(), &AsyncServiceHandler::Requestcreate, &AsyncServiceHandler::CreateCallback, cq_.get());
-	        new TypedCall<Request, ::google::protobuf::Empty>(service_.get(), &AsyncServiceHandler::Requestlearn, &AsyncServiceHandler::LearnCallback, cq_.get());
-	        new TypedCall<Request, Response>(service_.get(), &AsyncServiceHandler::Requestinfer, &AsyncServiceHandler::InferCallback, cq_.get());
-		}
-		else if (SHUTDOWN != state_)
-			return;
-	}
-
-	void* tag;  // uniquely identifies a request.
+	bool shutdown = false;	
 	bool ok = true;
+	void* tag;  // uniquely identifies a request.
+
+#ifdef DEBUG
+    LOG(INFO) << "AsyncServiceAcceptor: enqueueing listeners";
+#endif
+    (new TypedCall<Request, ::google::protobuf::Empty>(service_.get(), 
+        &AsyncServiceHandler::Requestcreate, &AsyncServiceHandler::CreateCallback, cq_.get()))->Proceed(true);
+	(new TypedCall<Request, ::google::protobuf::Empty>(service_.get(),
+        &AsyncServiceHandler::Requestlearn, &AsyncServiceHandler::LearnCallback, cq_.get()))->Proceed(true);
+	(new TypedCall<Request, Response>(service_.get(),
+        &AsyncServiceHandler::Requestinfer, &AsyncServiceHandler::InferCallback, cq_.get()))->Proceed(true);
+#ifdef DEBUG
+    LOG(INFO) << "AsyncServiceAcceptor: listeners ready";
+#endif
 
 	// Block waiting to read the next event from the completion queue. The
 	// event is uniquely identified by its tag, which in this case is the
@@ -143,9 +145,13 @@ void AsyncServiceAcceptor::HandleRpcs() {
 	// The return value of Next should always be checked. This return value
 	// tells us whether there is any kind of event or cq_ is shutting down.
 	while (cq_->Next(&tag, &ok)) {
-		assert(ok);
+#ifdef DEBUG
+        LOG(INFO) << "AsyncServiceAcceptor: got tag<" << tag << ">";
+#endif
+		//assert(ok);
 		if (tag == nullptr) {
 			if (!shutdown) {
+    			LOG(INFO) << "AsyncServiceAcceptor: shutdown alarm received";
 				// Shutdown requested
 				server_->Shutdown();
 				// Always shutdown the completion queue after the server.
@@ -155,20 +161,27 @@ void AsyncServiceAcceptor::HandleRpcs() {
 			continue;
 		}
 		// If not shutting down continue to listen
-		if (!shutdown && static_cast<UntypedCall*>(tag)->GetStatus() == UntypedCall::PROCESS)
-			static_cast<UntypedCall*>(tag)->CreateListener();
-		static_cast<UntypedCall*>(tag)->Proceed(ok);
+        if (ok) {
+    		if (!shutdown && static_cast<UntypedCall*>(tag)->GetStatus() == UntypedCall::PROCESS)
+    			static_cast<UntypedCall*>(tag)->CreateListener()->Proceed(true);
+    		static_cast<UntypedCall*>(tag)->Proceed(ok);            
+        } else {
+#ifdef DEBUG
+            LOG(INFO) << "AsyncServiceAcceptor: flushing completion queue<" << cq_.get() << ">";
+#endif
+            delete static_cast<UntypedCall*>(tag); 
+        }
 	}
 
 	if (!shutdown) {
 		server_->Shutdown();
 		cq_->Shutdown();
-		{
-			std::lock_guard<std::mutex> guard(mu_);
-			state_ = SHUTDOWN;
-		}
 	}
-	LOG(INFO) << "Shutdown completed";
+	LOG(INFO) << "AsyncServiceAcceptor: server stopped";    
+    {
+    	std::lock_guard<std::mutex> guard(mu_);
+    	state_ = STOPPED;        
+    }
 	shutdownPromise_.set_value();
 }
 
@@ -177,6 +190,107 @@ bool AsyncServiceAcceptor::BlockUntilShutdown(unsigned maxWaitTimeInSeconds) {
 	{
 		std::lock_guard<std::mutex> guard(mu_);
 		if (SHUTDOWN != state_ && STARTED != state_)
+			return false;
+	}
+	if (0 == maxWaitTimeInSeconds) {
+		shutdownFuture_.wait();
+		return true;
+	}
+	if (std::future_status::ready == shutdownFuture_.wait_for(std::chrono::seconds(maxWaitTimeInSeconds))) {
+		std::lock_guard<std::mutex> guard(mu_);
+	}
+    return true;
+}
+
+
+ServiceAcceptor::ServiceAcceptor(LucidaService::Service* service, const std::string& name):
+	service_(service), state_(INIT), serviceName_(name), 
+    shutdownPromise_(), shutdownFuture_(shutdownPromise_.get_future()) {
+}
+
+
+ServiceAcceptor::~ServiceAcceptor() {
+	Shutdown();
+    BlockUntilShutdown();
+}
+
+
+bool ServiceAcceptor::Start(const std::string& hostAndPort) {
+	{
+		std::lock_guard<std::mutex> guard(mu_);
+		if (state_ != INIT) return false;
+		state_ = STARTED;
+	}
+	ServerBuilder builder;
+
+	builder.AddListeningPort(hostAndPort, grpc::InsecureServerCredentials())
+		.RegisterService(service_.get());
+	server_ = builder.BuildAndStart();
+	if (server_.get() == nullptr) {
+		LOG(ERROR) << "Sync server failed to start";
+		std::lock_guard<std::mutex> guard(mu_);
+		state_ = ERROR;
+		return false;
+	}
+	LOG(INFO) << "ServiceAcceptor: server started->listening on " << hostAndPort;
+    server_->Wait();
+	LOG(INFO) << "ServiceAcceptor: server stopped";
+    {
+    	std::lock_guard<std::mutex> guard(mu_);
+    	state_ = STOPPED;        
+    }
+    shutdownPromise_.set_value();
+	return true;
+}
+
+
+bool ServiceAcceptor::Start(grpc::ServerBuilder& builder) {
+	{
+		std::lock_guard<std::mutex> guard(mu_);
+		if (state_ != INIT) return false;
+		state_ = STARTED;
+	}
+	builder.RegisterService(service_.get());
+	server_ = builder.BuildAndStart();
+	if (server_.get() == nullptr) {
+		LOG(ERROR) << "ServiceAcceptor: server failed to start";
+		std::lock_guard<std::mutex> guard(mu_);
+		state_ = ERROR;
+		return false;
+	}
+	LOG(INFO) << "ServiceAcceptor: server started";
+    server_->Wait();
+	LOG(INFO) << "ServiceAcceptor: server stopped";
+    {
+    	std::lock_guard<std::mutex> guard(mu_);
+    	state_ = STOPPED;        
+    }
+    shutdownPromise_.set_value();
+	return true;
+}
+
+
+void ServiceAcceptor::Shutdown() {
+	// Borrowed from tensorflow source
+	bool did_shutdown = false;
+	{
+		std::lock_guard<std::mutex> guard(mu_);
+		if (state_ == STARTED) {
+			LOG(INFO) << "ServiceAcceptor: initiating shutdown";
+			state_ = SHUTDOWN;
+			did_shutdown = true;
+		}
+	}
+	if (did_shutdown) {
+        server_->Shutdown();
+	}
+}
+
+
+bool ServiceAcceptor::BlockUntilShutdown(unsigned maxWaitTimeInSeconds) {
+	{
+		std::lock_guard<std::mutex> guard(mu_);
+		if (STARTED != state_ && SHUTDOWN != state_)
 			return false;
 	}
 	if (0 == maxWaitTimeInSeconds) {
