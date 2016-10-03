@@ -17,7 +17,7 @@ class TestSyncHandler : public LucidaService::Service {
 public:
 	TestSyncHandler();
 private:
-    ::grpc::Status infer(::grpc::ServerContext* context, const ::lucida::Request* request, ::lucida::Response* response) override;
+	::grpc::Status infer(::grpc::ServerContext* context, const ::lucida::Request* request, ::lucida::Response* response) override;
 };
 } } // namespace lucida::test
 

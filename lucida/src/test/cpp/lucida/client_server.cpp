@@ -12,12 +12,12 @@
 #include "handler.h"
 
 DEFINE_int32(port,
-             9000,
-             "Port for test (default: 9000)");
+			 9000,
+			 "Port for test (default: 9000)");
 
 DEFINE_int32(threads,
-             4,
-             "Number of threads (default: 4)");
+			 4,
+			 "Number of threads (default: 4)");
 
 using namespace lucida;
 namespace lucida { namespace test {
@@ -37,7 +37,7 @@ TEST(LucidaTest, SimpleSyncClientSyncServer) {
 	AsyncServiceConnector client(hostandport.c_str());
 
 	Request  req;
-    Response resp;
+	Response resp;
 	auto status = client.infer(req, resp);
 	//ASSERT_EQ(status, ::grpc::Status::OK);
 	EXPECT_EQ(resp.msg(), "got infer");
@@ -63,14 +63,14 @@ TEST(LucidaTest, SimpleAsyncClientSyncServer) {
 	});
 
 	AsyncServiceConnector client(hostandport.c_str());
-    client.Start();
+	client.Start();
 
 	Request  req;
-    Response* resp = nullptr;
+	Response* resp = nullptr;
 	auto rpc = client.inferAsync(req);
-    ASSERT_NE(rpc.get(), nullptr);
-    EXPECT_TRUE(rpc->Wait(3));
-    EXPECT_TRUE(rpc->Get(resp));
+	ASSERT_NE(rpc.get(), nullptr);
+	EXPECT_TRUE(rpc->Wait(3));
+	EXPECT_TRUE(rpc->Get(resp));
 	ASSERT_NE(resp, nullptr);
 	EXPECT_EQ(resp->msg(), "got infer");
 
@@ -97,7 +97,7 @@ TEST(LucidaTest, SimpleSyncClientAsyncServer) {
 	AsyncServiceConnector client(hostandport.c_str());
 
 	Request  req;
-    Response resp;
+	Response resp;
 	auto status = client.infer(req, resp);
 	//ASSERT_EQ(status, ::grpc::Status::OK);
 	EXPECT_EQ(resp.msg(), "got infer");
@@ -118,7 +118,7 @@ TEST(LucidaTest, SimpleAsyncClientAsyncServer) {
 	std::shared_ptr<AsyncServiceAcceptor> server(new AsyncServiceAcceptor(new TestAsyncHandler(), "testserver"));
 	std::string hostandport = os.str();
 	// Start receiving RPC's
-    
+	
 	std::thread svr_thread( [hostandport, server]() {
 		server->Start(hostandport, 1);
 	});
@@ -127,11 +127,11 @@ TEST(LucidaTest, SimpleAsyncClientAsyncServer) {
 	client.Start();
 
 	Request  req;
-    Response* resp = nullptr;
+	Response* resp = nullptr;
 	auto rpc = client.inferAsync(req);
-    ASSERT_NE(rpc.get(), nullptr);
-    EXPECT_TRUE(rpc->Wait(3));
-    EXPECT_TRUE(rpc->Get(resp));
+	ASSERT_NE(rpc.get(), nullptr);
+	EXPECT_TRUE(rpc->Wait(3));
+	EXPECT_TRUE(rpc->Get(resp));
 	ASSERT_NE(resp, nullptr);
 	EXPECT_EQ(resp->msg(), "got infer");
 

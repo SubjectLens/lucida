@@ -59,7 +59,7 @@ public:
 	virtual ~RpcCall() {}
 	const ::grpc::Status& GetStatus() const { return status_; }
 	bool IsOK() const { return ok_ && status_.ok(); }
-    bool Wait(unsigned timeoutInSeconds=0) const;
+	bool Wait(unsigned timeoutInSeconds=0) const;
 	std::future<void>& GetFuture() { return fut_; }
 	/// Get the response
 	virtual bool Get(::google::protobuf::Empty*& p) { p=nullptr; return false; } 
@@ -141,10 +141,10 @@ inline ::grpc::Status AsyncServiceConnector::infer(const Request& request, Respo
 	return stub_->infer((context == nullptr)? &context_: context, request, &response);
 }
 inline bool RpcCall::Wait(unsigned timeoutInSeconds) const {
-    if (0 == timeoutInSeconds) {
-        fut_.wait();
-        return true;
-    }
+	if (0 == timeoutInSeconds) {
+		fut_.wait();
+		return true;
+	}
 	return std::future_status::ready == fut_.wait_for(std::chrono::seconds(timeoutInSeconds));
 }
 

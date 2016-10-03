@@ -28,7 +28,7 @@ TestSyncHandler::TestSyncHandler() {
 
 ::grpc::Status TestSyncHandler::infer(::grpc::ServerContext* context, const ::lucida::Request* request, ::lucida::Response* response) {
 	response->set_msg("got infer");
-    return ::grpc::Status::OK;
+	return ::grpc::Status::OK;
 }
 
 } } // namespace lucida::test

@@ -57,22 +57,22 @@ AsyncServiceConnector::~AsyncServiceConnector() {
 }
 
 void AsyncServiceConnector::Start() {
-    // FIXME: should either use atomic load or mutex and 
-    if (runningAsync_.exchange(true)) return;
+	// FIXME: should either use atomic load or mutex and 
+	if (runningAsync_.exchange(true)) return;
 	cq_.reset(new CompletionQueue);
 	auto functor = [](std::shared_ptr<CompletionQueue> cq, std::atomic<unsigned>& errs) ->void {
 		bool ok;
 		void* tag;
 #ifdef DEBUG
-            LOG(INFO) << "AsyncServiceConnector: worker thread started cq<" << cq << ">";
+			LOG(INFO) << "AsyncServiceConnector: worker thread started cq<" << cq << ">";
 #endif        
 		while (cq->Next(&tag, &ok)) {
 #ifdef DEBUG
-            LOG(INFO) << "AsyncServiceConnector: got tag<" << tag << ">";
+			LOG(INFO) << "AsyncServiceConnector: got tag<" << tag << ">";
 #endif
 			if (tag == nullptr) {
 #ifdef DEBUG
-                LOG(INFO) << "AsyncServiceConnector: shutdown received";
+				LOG(INFO) << "AsyncServiceConnector: shutdown received";
 #endif
 				// Shutdown requested
 				break;
@@ -93,7 +93,7 @@ void AsyncServiceConnector::Shutdown() {
 	// queue to be shut down on the polling thread.
 	if (runningAsync_.load()) {
 #ifdef DEBUG
-        LOG(INFO) << "AsyncServiceConnector: shutdown initiated.";
+		LOG(INFO) << "AsyncServiceConnector: shutdown initiated.";
 #endif
 		std::unique_ptr<::grpc::Alarm> a(new ::grpc::Alarm(cq_.get(), gpr_now(GPR_CLOCK_MONOTONIC), nullptr));
 		cqThread_.join();

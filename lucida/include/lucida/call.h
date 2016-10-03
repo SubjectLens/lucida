@@ -82,7 +82,7 @@ inline void AsyncServiceHandler::InferCallback(TypedCall<Request, Response>* cal
 class UntypedCall {
 public:
 	UntypedCall(): status_(CREATE) {}
-    virtual ~UntypedCall() {}
+	virtual ~UntypedCall() {}
 	virtual void Proceed(bool ok) = 0;
 	virtual UntypedCall* CreateListener() = 0;
 	
@@ -117,7 +117,7 @@ public:
 	void Finish(const ::grpc::Status& status = ::grpc::Status::OK) {
 		if (FINISH != status_) {
 #ifdef DEBUG
-            LOG(INFO) << "TypedCall: finish tag<" << this << ">";
+			LOG(INFO) << "TypedCall: finish tag<" << this << ">";
 #endif
 			status_ = FINISH;
 			LOG_IF(ERROR, !status.ok()) << "TypedCall: gRPC handler reported status-code=" << int(status.error_code()) << " and message=\'" << status.error_message() << "\'";
@@ -129,7 +129,7 @@ public:
 	void FinishWithError(const ::grpc::Status& status) {
 		if (FINISH != status_) {
 #ifdef DEBUG
-            LOG(INFO) << "TypedCall: finish with error tag<" << this << ">";
+			LOG(INFO) << "TypedCall: finish with error tag<" << this << ">";
 #endif
 			status_ = FINISH;
 			LOG(ERROR) << "TypedCall: gRPC handler reported status-code=" << int(status.error_code()) << " and message=\'" << status.error_message() << "\'";
@@ -148,7 +148,7 @@ public:
 			// instances can serve different requests concurrently), in this case
 			// the memory address of this TypedCall instance.
 #ifdef DEBUG
-            LOG(INFO) << "TypedCall: listen on tag<" << this << ">";
+			LOG(INFO) << "TypedCall: listen on tag<" << this << ">";
 #endif
 			(service_->*listen_)(&ctx_, &request_, &responder_, cq_, cq_, (void*)this);
 		} else if (status_ == PROCESS) {
@@ -157,7 +157,7 @@ public:
 			Finish();
 		} else {
 #ifdef DEBUG
-            LOG(INFO) << "TypedCall: delete tag<" << this << ">";
+			LOG(INFO) << "TypedCall: delete tag<" << this << ">";
 #endif
 			assert(status_ == FINISH);
 			// Once in the FINISH state, deallocate ourselves (TypedCall).

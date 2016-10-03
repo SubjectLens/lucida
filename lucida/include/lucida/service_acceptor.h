@@ -112,8 +112,8 @@ protected:
 	std::unique_ptr<LucidaService::Service> service_;
 	std::unique_ptr<::grpc::Server> server_;
 	std::string serviceName_;
-    std::promise<void> shutdownPromise_;
-    std::future<void> shutdownFuture_;
+	std::promise<void> shutdownPromise_;
+	std::future<void> shutdownFuture_;
 
 public:
 	/// Create a service adaptor. 

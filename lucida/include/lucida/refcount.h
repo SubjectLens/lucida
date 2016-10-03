@@ -61,15 +61,15 @@ private:
 // Helper class to unref an object when out-of-scope.
 class ScopedRef {
 public:
-    explicit ScopedRef(RefCounted* o) : obj_(o) {}
-    explicit ScopedRef(RefCounted& o) : obj_(&o) {}
-    ~ScopedRef() {
-        if (obj_) obj_->Unref();
-    }
+	explicit ScopedRef(RefCounted* o) : obj_(o) {}
+	explicit ScopedRef(RefCounted& o) : obj_(&o) {}
+	~ScopedRef() {
+		if (obj_) obj_->Unref();
+	}
 private:
-    RefCounted* obj_;
-    ScopedRef(const ScopedRef&) = delete;
-    void operator=(const ScopedRef&) = delete;
+	RefCounted* obj_;
+	ScopedRef(const ScopedRef&) = delete;
+	void operator=(const ScopedRef&) = delete;
 };
 
 // Delete class for std::shared_ptr<>
