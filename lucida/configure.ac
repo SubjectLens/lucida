@@ -91,18 +91,38 @@ AC_MSG_CHECKING([gRPC plugin])
 AC_MSG_RESULT([$CPP_PLUGIN])
 
 CAFFE_CXXFLAGS=`../scripts/caffe_cxxflags.sh`
+
+AM_COND_IF([PLATFORM_DARWIN],
+	[OSX_BREW="`which brew`";OSX_PORT="`which port`";])
+
+dnl https://github.com/grpc/grpc/issues/7830
+dnl Have to statically link on OSX
+
+AS_IF([test "x$OSX_BREW" != "x" -a "x$OSX_PORT" != "x" ],
+    [AC_MSG_WARN([homebrew and mac ports installed - assuming homebrew])],
+)
+
+AS_IF([test "x$OSX_BREW" != "x" ],
+        [AM_LDFLAGS="-L/usr/local/opt/openssl/lib /usr/local/lib/libgrpc++.a /usr/local/lib/libgrpc.a -lcrypto -lssl -lgflags -lglog -lprotobuf -lpthread"],
+      [test "x$OSX_PORT" == "x" ],
+        [AM_LDFLAGS="-lgrpc++ -lgrpc -lcrypto -lssl -lgflags -lglog -lprotobuf -lpthread"],
+      [AC_MSG_ERROR([Mac ports not supported. You will need to add a solution for gRPC bug 7830])]
+)
+
 dnl ---------------------------------------------------------------------------
 AC_CONFIG_FILES(
     [
     Makefile
     include/Makefile
     src/main/cpp/lucida/Makefile
+    src/test/cpp/lucida/Makefile
 	djinntonic/face/Makefile
 	djinntonic/imc/Makefile
 	djinntonic/dig/Makefile
     ])
 
 AC_SUBST(AM_CXXFLAGS)
+AC_SUBST(AM_LDFLAGS)
 AC_SUBST(CPP_PLUGIN)
 AC_SUBST(CAFFE_CXXFLAGS)
 AC_OUTPUT

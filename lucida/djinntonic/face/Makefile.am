@@ -7,8 +7,7 @@ faceserver_SOURCES = \
 
 CAFFE = $(top_srcdir)/../deps/caffe/BUILD/caffe
 
-faceserver_LDFLAGS = -L$(CAFFE)/install/lib -lcaffe -lgrpc++ -lgrpc \
-            -lgflags -lglog -lpthread -lprotobuf -ljpeg -lboost_system
+faceserver_LDFLAGS = -L$(CAFFE)/install/lib $(AM_LDFLAGS) -lcaffe -ljpeg -lboost_system
 ## -levent
 
 faceserver_CPPFLAGS = $(CAFFE_CXXFLAGS) -I$(top_srcdir)/include -I$(CAFFE)/install/include

@@ -5,6 +5,7 @@ if IS_DEBUGON
 SUBDIRS= \
     include \
     src/main/cpp/lucida \
+    src/test/cpp/lucida \
 	djinntonic/imc \
 	djinntonic/dig \
 	djinntonic/face
@@ -12,6 +13,7 @@ else
 SUBDIRS= \
     include \
     src/main/cpp/lucida \
+    src/test/cpp/lucida \
 	djinntonic/imc \
 	djinntonic/dig \
 	djinntonic/face
@@ -26,6 +28,10 @@ EXTRADIST=\
 # Handle automake/make conflicts
 TARGETDIR=$(strip $(if $(findstring $(abs_top_srcdir), $(abs_top_builddir)), $(abs_top_builddir)/bin, $(abs_top_builddir)))
 
+.PHONY: test
 
+test: all
+	cd $(top_builddir)/src/test/cpp/lucida && $(MAKE) test
+	
 all-local:
 
