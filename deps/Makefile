@@ -93,6 +93,7 @@ INSTALL_TEMPLATE = @if ./build-tool.sh $(1) check; then \
 		echo "$(1) Already installed"; else \
 		./build-tool.sh $(1) build && \
 		$(SUDO) ./build-tool.sh $(1) install; \
+		[ "x$(SUDO)" = "x" ] || $(SUDO) ldconfig; \
 		if ./build-tool.sh $(1) check; then \
 			echo "$(1) install successful"; else \
 			echo "$(1) install failed"; fi; \
@@ -152,7 +153,7 @@ else
 ifeq ($(OSXPORTS),1)
 	$(SUDO) ./install-osx-macports-pkgs.sh
 else
-	$(SUDO) ./install-linux-pkgs.py -liv linux_pkg_deps.conf
+	$(SUDO) ./install-linux-pkgs.py -iv linux_pkg_deps.conf
 endif
 endif
 	if python -c "import sys;print sys.version" | grep -i 'anaconda\|continuum' >/dev/null 2>/dev/null; \
