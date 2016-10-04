@@ -1,2 +1,2 @@
-[ -d BUILD/caffe ] || exit 1
+[ -e BUILD/caffe/install/lib/libcaffe.so ] || exit 1
 exit 0
