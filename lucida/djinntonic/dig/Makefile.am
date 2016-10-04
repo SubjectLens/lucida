@@ -7,12 +7,12 @@ digserver_SOURCES = \
 
 CAFFE = $(top_srcdir)/../deps/caffe/BUILD/caffe
 
-digserver_LDFLAGS = -L$(CAFFE)/install/lib $(AM_LDFLAGS) -lcaffe -ljpeg -lboost_system
+digserver_LDFLAGS = -L$(CAFFE)/install/lib $(top_builddir)/src/main/cpp/lucida/liblucida.la -lcaffe $(AM_LDFLAGS) -ljpeg -lboost_system
 ## -levent
 
 digserver_CPPFLAGS = $(CAFFE_CXXFLAGS) -I$(top_srcdir)/include -I$(CAFFE)/install/include
 
-digserver_LDADD = $(top_builddir)/src/main/cpp/lucida/liblucida.la
+digserver_LDADD = 
 
 #.PHONY: start_server stop_server
 # Using AM_EXTRA_RECURSIVE_TARGETS

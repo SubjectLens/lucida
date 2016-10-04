@@ -7,12 +7,12 @@ imcserver_SOURCES = \
 
 CAFFE = $(top_srcdir)/../deps/caffe/BUILD/caffe
 
-imcserver_LDFLAGS = -L$(CAFFE)/install/lib $(AM_LDFLAGS) -lcaffe -ljpeg -lboost_system
+imcserver_LDFLAGS = -L$(CAFFE)/install/lib $(top_builddir)/src/main/cpp/lucida/liblucida.la -lcaffe $(AM_LDFLAGS) -ljpeg -lboost_system
 ## -levent
 
 imcserver_CPPFLAGS = $(CAFFE_CXXFLAGS) -I$(top_srcdir)/include -I$(CAFFE)/install/include
 
-imcserver_LDADD = $(top_builddir)/src/main/cpp/lucida/liblucida.la
+imcserver_LDADD = 
 
 #.PHONY: start_server stop_server
 # Using AM_EXTRA_RECURSIVE_TARGETS

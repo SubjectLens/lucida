@@ -7,12 +7,12 @@ faceserver_SOURCES = \
 
 CAFFE = $(top_srcdir)/../deps/caffe/BUILD/caffe
 
-faceserver_LDFLAGS = -L$(CAFFE)/install/lib $(AM_LDFLAGS) -lcaffe -ljpeg -lboost_system
+faceserver_LDFLAGS = -L$(CAFFE)/install/lib $(top_builddir)/src/main/cpp/lucida/liblucida.la -lcaffe $(AM_LDFLAGS) -ljpeg -lboost_system
 ## -levent
 
 faceserver_CPPFLAGS = $(CAFFE_CXXFLAGS) -I$(top_srcdir)/include -I$(CAFFE)/install/include
 
-faceserver_LDADD = $(top_builddir)/src/main/cpp/lucida/liblucida.la
+faceserver_LDADD = 
 
 #.PHONY: start_server stop_server
 # Using AM_EXTRA_RECURSIVE_TARGETS
