@@ -31,7 +31,10 @@
  */
 #include <lucida/path_ops.h>
 #include <boost/filesystem.hpp>
+#include <boost/version.hpp>
 #include <iostream>
+
+using namespace boost::filesystem;
 
 namespace {
 #ifdef _MSC_VER
@@ -43,9 +46,48 @@ static const std::string rootPrefix("/");
 static const std::string fileURLPrefix("file://");
 static const std::string rootPrefix; 
 #endif
-} // anonymous namespace
 
-using namespace boost::filesystem;
+// Boost 1.5 does not have this function - why?
+#if (BOOST_VERSION/100000) == 1 && (BOOST_VERSION/100 % 1000) < 60
+::boost::filesystem::path relative(const ::boost::filesystem::path &abspath, const ::boost::filesystem::path &relative_to) {
+	using namespace boost::filesystem;
+	// create absolute paths
+	path p = absolute(abspath);
+	path r = absolute(relative_to);
+
+	// if root paths are different, return absolute path
+	if (p.root_path() != r.root_path())
+		return p;
+
+	// initialize relative path
+	path result;
+
+	// find out where the two paths diverge
+	path::const_iterator itr_path = p.begin();
+	path::const_iterator itr_relative_to = r.begin();
+	while (*itr_path == *itr_relative_to && itr_path != p.end() && itr_relative_to != r.end()) {
+		++itr_path;
+		++itr_relative_to;
+	}
+
+	// add "../" for each remaining token in relative_to
+	if (itr_relative_to != r.end()) {
+		++itr_relative_to;
+		while(itr_relative_to != r.end()) {
+			result /= "..";
+			++itr_relative_to;
+		}
+	}
+
+	// add remaining path
+	while (itr_path != p.end()) {
+		result /= *itr_path;
+		++itr_path;
+	}
+	return result;
+}
+#endif
+} // anonymous namespace
 
 namespace lucida {
 
@@ -100,7 +142,7 @@ bool MakeAbsolutePathOrUrl(std::string& abspath, const std::string& relpath, con
 		}
 	} else pabs = path(workdir);
 
-	pabs /= prel;
+	pabs = absolute(prel, pabs);
 	if (pabs.has_root_directory()) {
 		abspath = protocol + pabs.normalize().generic_string();
 		return true;

@@ -147,15 +147,15 @@ $(LIST_TARGETS):
 # This should be run first
 install-pkgs:
 ifeq ($(OSXBREW),1)
-	@$(SUDO) ./install-osx-brew-pkgs.sh
+	$(SUDO) ./install-osx-brew-pkgs.sh
 else
 ifeq ($(OSXPORTS),1)
-	@$(SUDO) ./install-osx-macports-pkgs.sh
+	$(SUDO) ./install-osx-macports-pkgs.sh
 else
-	@$(SUDO) ./install-linux-pkgs.py -liv linux_pkg_deps.conf
+	$(SUDO) ./install-linux-pkgs.py -liv linux_pkg_deps.conf
 endif
 endif
-	@if python -c "import sys;print sys.version" | grep -i 'anaconda\|continuum' >/dev/null 2>/dev/null; \
+	if python -c "import sys;print sys.version" | grep -i 'anaconda\|continuum' >/dev/null 2>/dev/null; \
 		then if which python | grep '^$(HOME)'; \
 			then pip install -r python_deps.txt; \
 			else sudo pip install -r python_deps.txt; \

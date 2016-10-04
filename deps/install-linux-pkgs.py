@@ -41,13 +41,19 @@ class PackageInfo(object):
     def getName(self):
         return self._name
 
-    def getVersion(self):
+    def getVersion(self, raw=False):
+        if raw:
+            return self._version or 'none'
         return self._version or 'latest'
 
-    def getRequiredVersion(self):
+    def getRequiredVersion(self, raw=False):
+        if raw:
+            return self._required_version or 'none'
         return self._required_version or 'latest'
 
-    def getCandidateVersion(self):
+    def getCandidateVersion(self, raw=False):
+        if raw:
+            return self._candidate_version or 'none'
         if self.getRequiredVersion() == 'latest':
             return 'latest'
         return self._candidate_version or 'latest'
@@ -83,7 +89,7 @@ class PackageMgr(object):
         '''
         raise NotImplemented()
 
-    def installPackages(self, packageList, update, debug):
+    def installPackages(self, packageList, update, debug, verbose):
         '''Install packages.
         Override this in derived classes.
 
@@ -105,12 +111,19 @@ class PackageMgr(object):
         '''
         raise NotImplemented()
 
-    def execute(self, command, debug):
+    def execute(self, command, debug, verbose=False):
         if debug:
             print(command)
             return True
         else:
+            if verbose:
+                print(command)
             return 0 == os.system(command)
+
+    def executeAsRoot(self, command, debug, verbose=False):
+        if os.getuid() != 0:
+            command = 'sudo ' + command;
+        return self.execute(command, debug=debug, verbose=verbose)
 
     def checkVersionLess(self, ver1, ver2):
         '''Check if ver1 < ver2
@@ -176,7 +189,17 @@ class AptPackageMgr(PackageMgr):
         #         100 /var/lib/dpkg/status
         #      1:1.9.1-1 0
         #         500 http://us-east-1.ec2.archive.ubuntu.com/ubuntu/ trusty/main amd64 Packages
-        self._apt_query = re.compile(r'^\s*installed:(?:\d+:)?(?P<installed>\d[.\d-]*\d)[~+.\w_-]*\s*$|^\s*candidate:(?:\d+:)?(?P<candidate>\d[.\d-]*\d)[~+.\w_-]*\s*$', \
+        # cmake:
+        #   Installed: 3.2.2-2~ubuntu14.04.1~ppa1
+        #   Candidate: 3.2.2-2~ubuntu14.04.1~ppa1
+        #   Version table:
+        #  *** 3.2.2-2~ubuntu14.04.1~ppa1 0
+        #         500 http://ppa.launchpad.net/george-edison55/cmake-3.x/ubuntu/ trusty/main amd64 Packages
+        #         100 /var/lib/dpkg/status
+        #      2.8.12.2-0ubuntu3 0
+        #         500 http://us-east-1.ec2.archive.ubuntu.com/ubuntu/ trusty/main amd64 Packages
+        #self._apt_query = re.compile(r'^\s*installed:(?:\d+:)?(?P<installed>\d[.\d-]*\d)[~+.\w_-]*\s*$|^\s*candidate:(?:\d+:)?(?P<candidate>\d[.\d-]*\d)[~+.\w_-]*\s*$', \
+        self._apt_query = re.compile(r'^\s*installed:\s*(?:\d+:)?(?P<installed>\d[.\d-]*\d)\D.*$|^\s*candidate:\s*(?:\d+:)?(?P<candidate>\d[.\d-]*\d)\D.*$', \
                         flags=re.MULTILINE|re.IGNORECASE)
 
     def _parseDpkgQuery(self, result):
@@ -192,7 +215,9 @@ class AptPackageMgr(PackageMgr):
             return pkg
         return None
 
-    def _queryApt(self, pkgname, FNULL=None):
+    def _queryApt(self, pkgname, FNULL=None, debug=False):
+        if debug:
+            print('  Running apt-cache policy %s' % pkgname);
         if FNULL is None:
             with open(os.devnull, 'w') as FNULL:
                 result = subprocess.Popen(['apt-cache', 'policy', pkgname], \
@@ -200,17 +225,31 @@ class AptPackageMgr(PackageMgr):
         else:
             result = subprocess.Popen(['apt-cache', 'policy', pkgname], \
                     stderr=FNULL, stdout=subprocess.PIPE).communicate()[0]
-        srch = self._apt_query.match(result)
+        srch = self._apt_query.search(result)
         if srch is not None:
             candidate = None
+            installed = None
             if srch.group('installed') is not None and len(srch.group('installed')):
                 installed = srch.group('installed')
-            if srch.group('candidate') is not None and len(src.group('candidate')) != 0:
+            if srch.group('candidate') is not None and len(srch.group('candidate')) != 0:
                 candidate = srch.group('candidate')
+            if debug:
+                if installed is None and candidate is None:
+                    print('    result inconclusive')
+                    print('--------------')
+                    print(result)
+                    print('--------------')
+                else:
+                    print('    result = (%r,%r)' % (installed, candidate))
             return (installed, candidate)
+        elif debug:
+            print('    no results')
+            print('--------------')
+            print(result)
+            print('--------------')
         return (None,None)
 
-    def installPackages(self, packageList, update=False, debug=False):
+    def installPackages(self, packageList, update=False, debug=False, verbose=False):
         '''Install packages.
 
         Args:
@@ -227,19 +266,19 @@ class AptPackageMgr(PackageMgr):
             installfmt = 'sudo aptitude -y install %s'
 
         if update:
-            self.execute(updatefmt % 'update', debug)
-            self.execute(updatefmt % '-y upgrade', debug)
+            self.execute(updatefmt % 'update', debug=debug, verbose=verbose)
+            self.execute(updatefmt % '-y upgrade', debug=debug, verbose=verbose)
             
         args = ''
         for pkg in packageList:
             if (len(pkg.getName()) + 1 + len(args)) > 80:
-                self.execute(installfmt % args)
+                self.execute(installfmt % args, debug=debug, verbose=verbose)
                 args = ''
             args += ' ' + pkg.getName()
         if len(args) != 0:
-            self.execute(installfmt % args, debug)
+            self.execute(installfmt % args, debug=debug, verbose=verbose)
 
-    def refreshPackageCandidates(self, packageList, debug):
+    def refreshPackageCandidates(self, packageList, debug=False):
         '''Refresh candidate version..
 
         Args:
@@ -248,7 +287,7 @@ class AptPackageMgr(PackageMgr):
         '''
         with open(os.devnull, 'w') as FNULL:
             for pkg in packageList:
-                pkg._version,pkg._candidate_version = self._queryApt(nm[0], FNULL)
+                pkg._version,pkg._candidate_version = self._queryApt(pkg.getName(), FNULL, debug=debug)
 
     def getPackageInfo(self, names, debug=True):
         '''Get packages in same order a names
@@ -285,11 +324,11 @@ class AptPackageMgr(PackageMgr):
                         pkg._custom_action = nm[2]
                     if pkg.getRequiredVersion() != 'latest':
                         # Check using apt-cache
-                        _,pkg._candidate_version = self._queryApt(nm[0])
+                        _,pkg._candidate_version = self._queryApt(nm[0], debug=debug)
                     pkgs.append(pkg)
                 else:
                     # Check using apt-cache
-                    installed, candidate = self._queryApt(nm[0])
+                    installed, candidate = self._queryApt(nm[0], debug=debug)
                     if installed is not None:
                         warning('dpkg-query parse failure - check regex in this script')
                         pkg = PackageInfo(name=nm[0],state=PKG_INSTALLED,version=installed,requiredVersion=nm[1],candidateVersion=candidate)
@@ -315,14 +354,14 @@ class AptPackageMgr(PackageMgr):
                         pkg._custom_action = nm[2]
                     if pkg.getRequiredVersion() != 'latest':
                         # Check using apt-cache
-                        _,pkg._candidate_version = self._queryApt(nm[0])
+                        _,pkg._candidate_version = self._queryApt(nm[0], debug=debug)
                     pkgs.append(pkg)
                 else:
                     # Check using apt-cache
-                    installed, candidate = self._queryApt(nm[0])
+                    installed, candidate = self._queryApt(nm[0], debug=debug)
                     if installed is not None:
                         warning('dpkg-query parse failure - check regex in this script')
-                        pkg = PackayygeInfo(name=nm[0],state=PKG_INSTALLED,version=installed,requiredVersion=nm[1],candidateVersion=candidate)
+                        pkg = PackageInfo(name=nm[0],state=PKG_INSTALLED,version=installed,requiredVersion=nm[1],candidateVersion=candidate)
                         pkgs.append(pkg)
                     elif candidate is not None:    
                         pkg = PackageInfo(name=nm[0],version=installed,requiredVersion=nm[1],candidateVersion=candidate)
@@ -385,12 +424,12 @@ def grep_platform(regex):
     return False     
 
 def printPackageInfo(packages):
-    for u in pckages:
+    for u in packages:
         #     0         1         2         3         4         5         6
         #     0123456789012345678901234567890123456789012345678901234567890
-        print('  Package Name     Installed      Required')  
-        print('  ------------     ---------      --------')
-        print('  %15s  %13s  %13s' % (u.getName(), u.getVersion(), u.getRequiredVersion()))
+        print('  Package Name     Installed      Required     Candidate')  
+        print('  ------------     ---------      --------     ---------')
+        print('  %-16s %-14s %-12s %-14s' % (u.getName(), u.getVersion(True), u.getRequiredVersion(True), u.getCandidateVersion(True)))
 
 
 if __name__ == '__main__':
@@ -513,14 +552,13 @@ if __name__ == '__main__':
             if len(todo) == 0 and len(update) == 0:
                 print('Packages up to date - no action required')
             else:
-                mgr.installPackages(packageList=todo, update=len(update) != 0, debug=options.debug)
+                mgr.installPackages(packageList=todo, update=len(update) != 0, debug=options.debug, verbose=options.verbose)
                 mgr.refreshPackageCandidates(update)
                 todo, update = mgr.prepareInstall(update)
-                mgr.installPackages(packageList=todo, update=False, debug=options.debug)
+                mgr.installPackages(packageList=todo, update=False, debug=options.debug, verbose=options.verbose)
                 if len(update) !=0:
                     warning('unable to satisfy all package constraints')
-                    if options.verbose:
-                        printPackageInfo(update)
+                    printPackageInfo(update)
 
             # Now handle custom actions
             caPkgs,caMissing = mgr.getPackageInfo(custom, options.debug)
@@ -529,27 +567,26 @@ if __name__ == '__main__':
                 for ca in custom:
                     exe_path = os.path.join(base_path, ca[2])
                     if os.path.isfile(exe_path):
-                        if not mgr.execute(exe_path, options.debug):
+                        if not mgr.executeAsRoot(exe_path, debug=options.debug, verbose=options.verbose):
                             die('execution failed %s' % exe_path)
                     else:
                         die('cannot locate custom action %s' % exe_path)
             elif len(todo) == 0:
                 print('Custom packages up to date - no action required')
             else:
-                mgr.installPackages(packageList=todo, update=len(update) != 0, debug=options.debug)
+                mgr.installPackages(packageList=todo, update=len(update) != 0, debug=options.debug, verbose=options.verbose)
                 mgr.refreshPackageCandidates(update)
                 todo, update = mgr.prepareInstall(update)
-                mgr.installPackages(packageList=todo, update=False, debug=options.debug)
+                mgr.installPackages(packageList=todo, update=False, debug=options.debug, verbose=options.verbose)
                 if len(update) !=0:
                     warning('unable to satisfy all package constraints for custom actions')
-                    if options.verbose:
-                        printPackageInfo(update)
-            
+                    printPackageInfo(update)
+
             # if we had missing custom packages must do one more retry
             if len(caMissing) > 0:
                 caPkgs,caMissing = mgr.getPackageInfo(custom, options.debug)
                 todo, updateRequired = mgr.prepareInstall(caPkgs)
-                mgr.installPackages(packageList=todo, update=True, debug=options.debug)
+                mgr.installPackages(packageList=todo, update=True, debug=options.debug, verbose=options.verbose)
                 caPkgs,caMissing = mgr.getPackageInfo(custom, options.debug)
                 if len(caMissing):
                     warning('cannot resolve missing packages %s' % str(caMissing))
