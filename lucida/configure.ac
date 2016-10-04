@@ -6,6 +6,9 @@ AC_CANONICAL_SYSTEM
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([-Wno-portability])
 
+dnl Extra target for starting servers
+AM_EXTRA_RECURSIVE_TARGETS([start_server stop_server])
+
 dnl ---------------------------------------------------------------------------
 dnl Determine platform and architecture 
 
@@ -103,9 +106,9 @@ AS_IF([test "x$OSX_BREW" != "x" -a "x$OSX_PORT" != "x" ],
 )
 
 AS_IF([test "x$OSX_BREW" != "x" ],
-        [AM_LDFLAGS="-L/usr/local/opt/openssl/lib /usr/local/lib/libgrpc++.a /usr/local/lib/libgrpc.a -lcrypto -lssl -lgflags -lglog -lprotobuf -lpthread"],
+        [AM_LDFLAGS="-L/usr/local/opt/openssl/lib /usr/local/lib/libgrpc++.a /usr/local/lib/libgrpc.a  -lcrypto -lssl -lgflags -lglog -lprotobuf -lpthread -lboost_filesystem -lboost_system"],
       [test "x$OSX_PORT" == "x" ],
-        [AM_LDFLAGS="-lgrpc++ -lgrpc -lcrypto -lssl -lgflags -lglog -lprotobuf -lpthread"],
+        [AM_LDFLAGS="-lgrpc++ -lgrpc -lcrypto -lssl -lgflags -lglog -lprotobuf -lpthread -lboost_filesystem -lboost_system"],
       [AC_MSG_ERROR([Mac ports not supported. You will need to add a solution for gRPC bug 7830])]
 )
 

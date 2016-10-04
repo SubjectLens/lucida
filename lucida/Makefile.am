@@ -28,10 +28,12 @@ EXTRADIST=\
 # Handle automake/make conflicts
 TARGETDIR=$(strip $(if $(findstring $(abs_top_srcdir), $(abs_top_builddir)), $(abs_top_builddir)/bin, $(abs_top_builddir)))
 
-.PHONY: test
+.PHONY: test start_all
 
 test: all
 	cd $(top_builddir)/src/test/cpp/lucida && $(MAKE) test
 	
 all-local:
+
+start_all: all
 
