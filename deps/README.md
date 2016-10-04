@@ -12,7 +12,7 @@ in the build tree.
 
 ### Linux
 
-Edit `linux\_pkg\_deps.conf` and add packages to that file. See that file for
+Edit `linux_pkg_deps.conf` and add packages to that file. See that file for
 details on usage.
 
 ### OSX
@@ -34,10 +34,11 @@ For dependencies that need to be built locally do the following.
       build tree with this script. Exit 1 on failure.
     - `check.sh`: This is run under your credentials. It should exit 0 if 
       the dependency is installed or exit 1 if not installed.
+    - 'clean.sh`: Clean the build.
 3. Optionally add `common.sh` script for common environment settings across build,
-   install, and check.
+   install, clean, and check.
 
-The scripts (`build.sh`,`check.sh`,`common.sh`,`install.sh`) are included into the local
+The scripts (`build.sh`,`check.sh`,`common.sh`,`clean.sh`,`install.sh`) are included into the local
 dependency handler `build-tool.sh`. These scripts should not be executable or have
 a shabang at the file header. The following environment
 variables are defined in all scripts:

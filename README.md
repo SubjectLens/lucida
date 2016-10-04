@@ -1,13 +1,18 @@
 # Lucida
 
-Lucida is a speech and vision based intelligent personal assistant inspired by
-[Sirius](http://sirius.clarity-lab.org).
+Lucida is a speech and vision based intelligent personal assistant inspired by [Sirius](http://sirius.clarity-lab.org).
 Visit [our website](http://lucida.ai) for tutorial, and
 [Lucida-users](http://groups.google.com/forum/#!forum/lucida-users) for help.
-The project is released under [BSD
-license](LICENSE), except certain submodules contain their own specific
+The project is released under [BSD license](LICENSE), except certain submodules contain their own specific
 licensing information. We would love to have your help on improving Lucida, and
 see [CONTRIBUTING](CONTRIBUTING.md) for more details.
+
+This fork differs from the orginal Lucida project in the following ways:
+- Uses gRPC instead of Thrift.
+- Build works on Debian, CentOS, and OSX.
+- Improved dependency management.
+
+Th conversion to gRPC is work-in-progress so it is not functional yet.
 
 ## Overview
 
@@ -34,27 +39,19 @@ see [CONTRIBUTING](CONTRIBUTING.md) for more details.
     <img src="high_level.png" alt="" width="600" />
   </p>
 
-- `tools`: dependencies necessary for compiling Lucida.
+- `deps`: dependencies necessary for compiling Lucida.
   Due to the fact that services share some common dependencies,
   all services should be compiled after these dependencies are installed.
   The advantage of a central point of dependencies is that the total size of compiled services is minimized;
-  the disadvante is that it makes deleting a service from Lucida non-trivial -- you have to remove its dependencies in `tools`. 
+  the disadvante is that it makes deleting a service from Lucida non-trivial -- you have to remove its dependencies in `deps`. 
 
 ## Lucida Local Development
 
   If you want to make contributions to Lucida, please build it locally:
 
-- From this directory, type: `make local`. This will run scripts in `tools/` to
+- From this directory, type: `make init && make`. This will run scripts in `deps/` to
   install all the required depedencies. After that, it will compile back-end services
   in `lucida/`.
-
-- If for some reason you need to compile part of it (e.g. one back-end service),
-  make sure to set the following environment variable as set in [`Makefile`](Makefile):
-
-  ```
-  export LD_LIBRARY_PATH=/usr/local/lib
-  ```
-  You can add it permanently to your bash profile.
 
 - Start all services:
 
@@ -62,13 +59,19 @@ see [CONTRIBUTING](CONTRIBUTING.md) for more details.
   make start_all
   ```
 
-  This will spawn a terminal window (`gnome-terminal`) for each service as well as the command center.
-  Once they all start running,
+  This will spawn a gnu screen for each service as well as the command center. To see the
+  list of active screens run `screen -list`. Once they all start running, 
   open your browser and visit `http://localhost:3000/`.
-  Check out the [`tutorial`](tutorial.pdf) for usgae and sample questions.
+  Check out the [`tutorial`](tutorial.pdf) for usage and sample questions.
   
   Currently, the command center receives the user input in the form of HTTP requests sent from your browser,
   but in future we can support other forms of input. 
+
+- Stop all services:
+
+  ```
+  make stop_all
+  ```
 
 ## Lucida Docker Deployment
 
@@ -86,40 +89,38 @@ see [CONTRIBUTING](CONTRIBUTING.md) for more details.
 
 ### Back-end Communication
 
-Thrift is an RPC framework with the advantages of being efficient and language-neutral. 
-It was originally developed by Facebook and now developed by both the open-source community (Apache Thrift) and Facebook.
-We use both Apache Thrift and Facebook Thrift because Facebook Thrift has a fully asynchronous C++ server but does not support
-Java very well. Also, Apache Thrift seems to be more popular.
-Therefore, we recommend using Apache Thrift for services written in Python and Java,
-and Facebook Thrift for services written in C++.
-However, you can choose either one for your own service as long as you follow the steps below.
+Thrift was originally used for this project but is currently being being removed and replaced
+with gRPC. Thrift and gRPC are similar but we feel gRPC is a more stable and active project.
+gRPC is an RPC framework with the advantages of being efficient and language-neutral. 
+It is developed by Google and is used in their infrastructure - for example tensorflow. gRPC
+supports synchronous and asynchronous communication.
 
-One disadvantage about Thrift is that the interface has to be pre-defined and implemented by each service. 
-If the interface changes, all services have to re-implement the interface. 
-We try to avoid changing the interface by careful design, but if you really need to adapt the interface for your need,
-feel free to modify, but make sure that all services implement and use the new interface.
+One disadvantage about Thrift and gRPC is the interface has to be pre-defined and implemented
+by each service. For Java and C++ we have addied boiler plate code to minimize the integration
+effort, however if the interface changes, all services have to re-implement the interface. 
+We try to avoid changing the interface by careful design, but if you really need to adapt the
+interface for your needs, feel free to modify, but make sure that all services implement and
+use the new interface.
 
 ### Detailed Instructions
 
-You need to configure the command center (CMD) besides implementing the Thrift interface
+You need to configure the command center (CMD) besides implementing the gRPC interface
 in order to add your own service into Lucida. Let's break it down into two steps:
 
-1. Implement the Thrift interface jointly defined in `lucida/lucidaservice.thrift` and `lucida/lucidatypes.thrift`.
-
-  1. [`lucida/lucidaservice.thrift`](lucida/lucidaservice.thrift)
+1. Implement the gRPC interface defined in [`lucida_service.proto`](lucida/src/main/proto/lucida_service.proto)
+  1. Service Definition:
 
     ```
-    include "lucidatypes.thrift"
     service LucidaService {
-       void create(1:string LUCID, 2:lucidatypes.QuerySpec spec);
-       void learn(1:string LUCID, 2:lucidatypes.QuerySpec knowledge);
-       string infer(1:string LUCID, 2:lucidatypes.QuerySpec query);
+      rpc create(Request) returns (google.protobuf.Empty) {}
+      rpc learn(Request) returns (google.protobuf.Empty) {}
+      rpc infer(Request) returns (Response) {}
     }
     ```
     
     The basic funtionalities that your service needs to provide are called `create`, `learn`, and `infer`. 
     They all take in the same type of parameters, a `string` representing the Lucida user ID (`LUCID`),
-    and a `QuerySpec` defined in `lucida/lucidatypes.thrift`. 
+    and a `QuerySpec` defined in `lucida/lucida_service.proto`. 
     The command center invokes these three procedures implemented by your service,
     and services can also invoke these procedures on each other to achieve communication.
     Thus the typical data flow looks like this:
@@ -130,10 +131,10 @@ in order to add your own service into Lucida. Let's break it down into two steps
     
     ```Command Center (CMD) -> Your Own Service 0 (YOS0) -> Your Own Service 1 (YOS1) -> Your Own Service 2 (YOS2)```
     
-    In this scenario, make sure to implement the asynchronous Thrift interface.
-    If YOS0 implements the asynchronous Thrift interface,
+    In this scenario, make sure to implement the asynchronous gRPC interface.
+    If YOS0 implements the asynchronous gRPC interface,
     it won't block on waiting for the response from YOS1.
-    If YOS0 implements the synchronous Thrift interface, it cannot make progress until
+    If YOS0 implements the synchronous gRPC interface, it cannot make progress until
     YOS1 returns the response, so the operating system will perform a thread context switch,
     and let the current thread sleep until YOS1 returns. 
     See section 3 of step 1 for implementation details.
@@ -159,17 +160,17 @@ in order to add your own service into Lucida. Let's break it down into two steps
     Notice all the three functions take in `QuerySpec` as their second parameters,
     so let's see what `QuerySpec` means for each function.
     
-  2.  [`lucida/lucidatypes.thrift`](lucida/lucidatypes.thrift):
+  2.  Message Types:
 
     ```
-    struct QueryInput {
-        1: string type;
-        2: list<string> data;
-        3: list<string> tags;
+    message QueryInput {
+      string type = 1;
+      repeated bytes data = 2;
+      repeated string tags = 3;
     }
-    struct QuerySpec {
-        1: string name;
-        2: list<QueryInput> content;
+    message QuerySpec {
+      string name = 1;
+      repeated QueryInput content = 2;
     }
     ```
     
@@ -284,30 +285,30 @@ in order to add your own service into Lucida. Let's break it down into two steps
 
     If it is written in C++, refer to the code in [`lucida/imagematching/opencv_imm/server/`]
     (lucida/imagematching/opencv_imm/server/).
-    Look at `Makefile` for how to generate Thrift stubs which are the abstract base classes your handlers need to inherit.
+    Look at `Makefile` for how to generate gRPC stubs which are the abstract base classes your handlers need to inherit.
     Notice that the interface is implemented in `IMMHandler.h` and `IMMHandler.cpp`,
-    and the entry point (which uses a multi-threaded server provided by Thrift) is in `IMMServer.cpp`.
+    and the entry point (which uses a multi-threaded server provided by gRPC) is in `IMMServer.cpp`.
     
-    If it is written in Java, refer to the code in [`lucida/calendar/src/main/java/calendar/`]
-    (lucida/calendar/src/main/java/calendar/) and [`lucida/calendar/`](lucida/calendar/).
-    Look at `Makefile` for how to generate Thrift stubs which are the interfaces your handlers need to implement.
+    If it is written in Java, refer to the code in [`lucida/calendar/src/main/java/ai/lucida/calendar/`]
+    (lucida/calendar/src/main/java/ai/lucida/calendar/). Look at `Makefile` for how to generate gRPC stubs
+	which are the interfaces your handlers need to implement.
     Notice that the interface is implemented in `CAServiceHandler.java`,
-    and the entry point (which uses a multi-threaded server provided by Thrift) is in `CalendarDaemon.java`.
+    and the entry point (which uses a multi-threaded server provided by gRPC) is in `CalendarDaemon.java`.
     
-    If it is written in other programming languages, please refer to [the official tutorial](https://thrift.apache.org/tutorial/).
+    If it is written in other programming languages, please refer to [the official tutorial](http://www.grpc.io/docs/tutorials/).
     
   4. Here is a list of what you need to do for step 1: 
     
-    * Add a thrift wrapper which typically consists of a Thrift handler implementing the Thrift interfaces,
+    * Add a thrift wrapper which typically consists of a gRPC handler implementing the gRPC interfaces,
       and a daemon program which is the entry point of your service.
       Refer to the code examples mentioned above.
     
-    * Modify your `Makefile` so that it uses the Thrift compiler to generate Thrift stubs code.
+    * Modify your `Makefile` so that it uses the protoc compiler to generate gRPC stubs code.
       Following the style of the existing `Makefile`s is recommended.
 
     * Test your service.
     
-    * (optional) Modify `tools` if you choose to put the dependencies of your service in this central point.
+    * (optional) Modify `deps` if you choose to put the dependencies of your service in this central point.
     
     * (Local development) Modify the top-level [`Makefile`](Makefile) and [`lucida/Makefile`](lucida/Makefile)
       so that `make local` and `make start_all` include your service.
