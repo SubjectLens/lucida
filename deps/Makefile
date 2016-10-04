@@ -153,7 +153,8 @@ else
 ifeq ($(OSXPORTS),1)
 	$(SUDO) ./install-osx-macports-pkgs.sh
 else
-	$(SUDO) ./install-linux-pkgs.py -iv linux_pkg_deps.conf
+	# will sudo if required
+	./install-linux-pkgs.py -iv linux_pkg_deps.conf
 endif
 endif
 	if python -c "import sys;print sys.version" | grep -i 'anaconda\|continuum' >/dev/null 2>/dev/null; \
