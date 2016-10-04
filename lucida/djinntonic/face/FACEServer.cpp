@@ -3,6 +3,7 @@
 #include <sstream>
 #include <csignal>
 #include "FACEHandler.h"
+#include <lucida/path_ops.h>
 
 DEFINE_int32(port,
              8086,
@@ -26,11 +27,12 @@ void SignalShutdown(int) {
 int main(int argc, char* argv[]) {
 	google::InitGoogleLogging(argv[0]);
 	google::ParseCommandLineFlags(&argc, &argv, true);
+	std::string workdir = Dirname(argv[0]);
 
 	// Prep
 	std::ostringstream os;
 	os << "localhost:"<< FLAGS_port;
-	std::shared_ptr<AsyncServiceAcceptor> server(new AsyncServiceAcceptor(new FACEHandler, "faceserver"));
+	std::shared_ptr<AsyncServiceAcceptor> server(new AsyncServiceAcceptor(new FACEHandler(workdir), "faceserver"));
 	server_for_signal = server;
 
 	// Catch Ctrl-C and shutdown if received

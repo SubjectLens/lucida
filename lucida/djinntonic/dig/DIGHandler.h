@@ -8,6 +8,7 @@ namespace lucida {
 class DIGHandler : public AsyncServiceHandler {
 public:
 	DIGHandler();
+	DIGHandler(const std::string& workdir);
 private:
 	void OnCreate(TypedCall<Request, ::google::protobuf::Empty>* call) override;
 	void OnLearn(TypedCall<Request, ::google::protobuf::Empty>* call) override;

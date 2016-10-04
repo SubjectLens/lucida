@@ -9,6 +9,7 @@
 #include <jpeglib.h>
 #include <gflags/gflags.h>
 #include <csetjmp>
+#include <lucida/path_ops.h>
 
 DEFINE_string(face_network, "configs/face.prototxt",
               "Network config for face (default: config/face.prototxt");
@@ -40,6 +41,36 @@ void jpegErrorExit (j_common_ptr cinfo)
   jpegErrorManager* myerr = (jpegErrorManager*) cinfo->err;
   ( *(cinfo->err->format_message) ) (cinfo, jpegLastErrorMsg);
   longjmp(myerr->setjmp_buffer, 1);
+}
+
+FACEHandler::FACEHandler(const std::string& workdir) {
+  if (!MakeAbsolutePathOrUrl(this->network_, FLAGS_face_network, workdir)) {
+	  LOG(ERROR) << "failed to generated absolute path from <" << workdir << "> and <" << FLAGS_face_network << ">";
+	  this->network_ = FLAGS_face_network;
+  }
+  if (!MakeAbsolutePathOrUrl(this->weights_, FLAGS_face_weights, workdir)) {
+	  LOG(ERROR) << "failed to generated absolute path from <" << workdir << "> and <" << FLAGS_face_weights << ">";
+	  this->network_ = FLAGS_face_weights;
+  }
+
+  // load caffe model
+  this->net_ = new Net<float>(this->network_, caffe::TEST);
+  this->net_->CopyTrainedLayersFrom(this->weights_);
+ 
+  this->classes_ = new std::vector<std::string>();
+  // load image classes
+  (*this->classes_).push_back(std::string("")); //offset
+  std::ifstream cl_file("face-classes.txt");
+  while (!cl_file.eof()) {
+    char c;
+    std::string face_class;
+    cl_file >> face_class; // fake get
+    cl_file.get(c); // fake get
+    getline (cl_file, face_class);
+    (*this->classes_).push_back(face_class);
+  }
+ 
+  LOG(ERROR) << "Finished initializing the handler!"; 
 }
 
 FACEHandler::FACEHandler() {

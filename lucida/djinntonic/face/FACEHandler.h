@@ -2,11 +2,13 @@
 
 #include <lucida/service_acceptor.h>
 #include <caffe/caffe.hpp>
+#include <string>
 
 namespace lucida {
 
 class FACEHandler: public AsyncServiceHandler {
 public:
+	FACEHandler(const std::string& workdir);
 	FACEHandler();
 private:
 	void OnCreate(TypedCall<Request, ::google::protobuf::Empty>* call) override;

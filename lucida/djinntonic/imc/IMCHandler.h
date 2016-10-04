@@ -7,6 +7,7 @@ namespace lucida {
 
 class IMCHandler : public AsyncServiceHandler {
 public:
+	IMCHandler(const std::string& workdir);
 	IMCHandler();
 private:
 	void OnCreate(TypedCall<Request, ::google::protobuf::Empty>* call) override;

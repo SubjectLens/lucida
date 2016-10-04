@@ -8,6 +8,7 @@
 #include <jpeglib.h>
 #include <gflags/gflags.h>
 #include <csetjmp>
+#include <lucida/path_ops.h>
 
 DEFINE_string(dig_network, "configs/dig.prototxt",
               "Network config for dig (default: config/dig.prototxt");
@@ -38,6 +39,22 @@ void jpegErrorExit (j_common_ptr cinfo)
   jpegErrorManager* myerr = (jpegErrorManager*) cinfo->err;
   ( *(cinfo->err->format_message) ) (cinfo, jpegLastErrorMsg);
   longjmp(myerr->setjmp_buffer, 1);
+}
+
+DIGHandler::DIGHandler(const std::string& workdir) {
+  if (!MakeAbsolutePathOrUrl(this->network_, FLAGS_dig_network, workdir)) {
+	  LOG(ERROR) << "failed to generated absolute path from <" << workdir << "> and <" << FLAGS_dig_network << ">";
+	  this->network_ = FLAGS_dig_network;
+  }
+  if (!MakeAbsolutePathOrUrl(this->weights_, FLAGS_dig_weights, workdir)) {
+	  LOG(ERROR) << "failed to generated absolute path from <" << workdir << "> and <" << FLAGS_dig_weights << ">";
+	  this->network_ = FLAGS_dig_weights;
+  }
+
+  // load caffe model
+  this->net_ = new Net<float>(this->network_, caffe::TEST);
+  this->net_->CopyTrainedLayersFrom(this->weights_);
+  LOG(ERROR) << "Finished initializing the handler!"; 
 }
 
 DIGHandler::DIGHandler() {

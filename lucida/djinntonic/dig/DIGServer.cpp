@@ -1,5 +1,6 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
+#include <lucida/path_ops.h>
 #include <sstream>
 #include <csignal>
 #include "DIGHandler.h"
@@ -26,11 +27,12 @@ void SignalShutdown(int) {
 int main(int argc, char* argv[]) {
 	google::InitGoogleLogging(argv[0]);
 	google::ParseCommandLineFlags(&argc, &argv, true);
+	std::string workdir = Dirname(argv[0]);
 
 	// Prep
 	std::ostringstream os;
 	os << "localhost:"<< FLAGS_port;
-	std::shared_ptr<AsyncServiceAcceptor> server(new AsyncServiceAcceptor(new DIGHandler, "digserver"));
+	std::shared_ptr<AsyncServiceAcceptor> server(new AsyncServiceAcceptor(new DIGHandler(workdir), "digserver"));
 	server_for_signal = server;
 
 	// Catch Ctrl-C and shutdown if received

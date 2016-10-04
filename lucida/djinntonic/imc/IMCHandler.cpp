@@ -9,6 +9,7 @@
 #include <jpeglib.h>
 #include <gflags/gflags.h>
 #include <csetjmp>
+#include <lucida/path_ops.h>
 
 DEFINE_string(imc_network, "configs/imc.prototxt",
               "Network config for imc (default: config/imc.prototxt");
@@ -40,6 +41,35 @@ void jpegErrorExit (j_common_ptr cinfo)
   longjmp(myerr->setjmp_buffer, 1);
 }
 
+
+IMCHandler::IMCHandler(const std::string& workdir) {
+  if (!MakeAbsolutePathOrUrl(this->network_, FLAGS_imc_network, workdir)) {
+	  LOG(ERROR) << "failed to generated absolute path from <" << workdir << "> and <" << FLAGS_imc_network << ">";
+	  this->network_ = FLAGS_imc_network;
+  }
+  if (!MakeAbsolutePathOrUrl(this->weights_, FLAGS_imc_weights, workdir)) {
+	  LOG(ERROR) << "failed to generated absolute path from <" << workdir << "> and <" << FLAGS_imc_weights << ">";
+	  this->network_ = FLAGS_imc_weights;
+  }
+
+  // load caffe model
+  this->net_ = new Net<float>(this->network_, caffe::TEST);
+  this->net_->CopyTrainedLayersFrom(this->weights_);
+
+  this->classes_ = new std::vector<std::string>();
+  // load image classes
+  std::ifstream cl_file("imc-classes.txt");
+  while (!cl_file.eof()) {
+    char c;
+    std::string imc_class;
+    cl_file >> imc_class; // fake get
+    cl_file.get(c); // fake get
+    getline (cl_file, imc_class);
+    (*this->classes_).push_back(imc_class);
+  }
+ 
+  LOG(ERROR) << "Finished initializing the handler!"; 
+}
 
 IMCHandler::IMCHandler() {
   this->network_ = FLAGS_imc_network;
