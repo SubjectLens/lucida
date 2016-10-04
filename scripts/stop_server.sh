@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /bin/bash
 
 # die(message)
 die () {
@@ -35,3 +35,4 @@ kill -9 $PID &>/dev/null
 timed_wait 5 || die "Cannot terminate $PID."
 rm -f run/server.pid
 echo
+exit 0

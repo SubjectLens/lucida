@@ -31,10 +31,16 @@ start_server:
 	@echo "  use 'ctrl-A d' to detach from the console"
 	@echo "  use 'screen -r commandcenter' to reattach"
 	@echo "  use 'screen -list to show all running consoles"
+	@echo ""
+	@echo "  pid will be saved at ./run/server.pid"
 	@echo "  starting detached..."
 	@screen -d -m -S commandcenter ./start_server.sh $(filter-out $@,$(MAKECMDGOALS))
 	
 stop_server:
+	@echo "=========================================================="
+	@echo "Running stop_server.sh
+	@echo "  this should close the commandcenter console if it exists"
+	@echo "  run 'screen -list' to show all running consoles"
 	./stop_server.sh
 # read -n1"
 

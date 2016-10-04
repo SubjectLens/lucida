@@ -1,6 +1,7 @@
 bin_PROGRAMS = lucida_test
 
 lucida_test_SOURCES = \
+	utils/path_test.cpp \
 	handler.cpp \
 	handler.h \
 	client_server.cpp

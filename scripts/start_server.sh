@@ -6,9 +6,8 @@ die () {
 }
 
 usage() {
-cat < EOF
+cat << EOF
 start_server.sh [options] -c cmd [args ...]
-  -c: ends options, the executable cmd must follow.
   -d: debug, just print what will be executed.
   -S <bash script>: source this script in start_server before running cmd.
 
@@ -26,34 +25,33 @@ RUNDIR=`pwd`
 # Process command line options
 SERVER_DBG=0
 SERVER_SRC=
-while getopts ":dcS:" OPTION; do
+while getopts ":dS:" OPTION; do
 case $OPTION in
 d ) SERVER_DBG=1;;
-c ) shift $((OPTIND-1));break;;   
 S ) SERVER_SRC=$OPTARG;;
 h ) usage;;
 * ) usage;;
 esac
 done
-[ "x$0" == "x-c" ] || die "missing cmd $0 $*"
-shift
+shift $((OPTIND-1))   
+[ "x$1" != "" ] || die "missing cmd $*"
 
 # Check if we are running
-[ -f run/server.pid ] && kill -0 `cat run/server.pid` &>/dev/null && die "stop server first" 
-mkdir -p run
+[ -e $RUNDIR/run/server.pid ] && kill -0 `cat ${RUNDIR}/run/server.pid` &>/dev/null && die "stop server first" 
+mkdir -p $RUNDIR/running
 
-[ -f $0 ] || which $0 || die "Cannot find \'$0\' in path"
-[ -x $0 ] || die "file \'$0\' is not executable"
 [ "x$SERVER_SRC" == "x" ] || source $SERVER_SRC || die "cannot source $SERVER_SRC"
 echo "====================================================="
-echo "Running server \'$0 $*\'"
+echo "Running server '$*'"
 echo "  To stop run stop_server.sh in the current directory"
 echo "  The pid will be saved at `pwd`/run/server.pid"
-$0 $* &
+[ $SERVER_DBG -eq 0 ] && $* &
 PID="$!"
 # Use RUNDIR incase source script changed working dir
-echo "$PID" > $RUNDIR/run/server.pid
+[ $SERVER_DBG -eq 0 ] && echo "$PID" > $RUNDIR/run/server.pid
 #wait $PID
-while kill -0 $PID &> /dev/null; do sleep 1; done
-rm -f $RUNDIR/run/server.pid &>/dev/null
-
+[ $SERVER_DBG -ne 0 ] && echo "while kill -0 \$PID &> /dev/null; do sleep 1; done"
+[ $SERVER_DBG -eq 0 ] && while kill -0 $PID &> /dev/null; do sleep 1; done
+[ $SERVER_DBG -ne 0 ] && echo "rm -f $RUNDIR/run/server.pid &>/dev/null"
+[ $SERVER_DBG -eq 0 ] && rm -f $RUNDIR/run/server.pid &>/dev/null
+exit 0

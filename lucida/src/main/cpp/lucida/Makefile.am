@@ -42,6 +42,7 @@ list-generated:
 
 nodist_liblucida_la_SOURCES = $(GENERATED_FILE_PATHS)
 liblucida_la_SOURCES = \
+	utils/path_ops.cpp \
 	request_builder.cpp \
 	service_names.cpp \
 	service_acceptor.cpp \
