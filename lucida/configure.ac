@@ -49,7 +49,8 @@ AC_MSG_RESULT([$ARCH])
 
 # Setup include paths
 AM_COND_IF([PLATFORM_DARWIN],
-	[AM_CXXFLAGS="-I/System/Library/Frameworks/Accelerate.framework/Versions/Current/Frameworks/vecLib.framework/Versions/Current/Headers"])
+	[AM_CXXFLAGS="-I/System/Library/Frameworks/Accelerate.framework/Versions/Current/Frameworks/vecLib.framework/Versions/Current/Headers"],
+	[AM_CXXFLAGS="`pkg-config --cflags protobuf`"])
 
 dnl ---------------------------------------------------------------------------
 dnl Environment checks
@@ -108,7 +109,7 @@ AS_IF([test "x$OSX_BREW" != "x" -a "x$OSX_PORT" != "x" ],
 AS_IF([test "x$OSX_BREW" != "x" ],
         [AM_LDFLAGS="-L/usr/local/opt/openssl/lib /usr/local/lib/libgrpc++.a /usr/local/lib/libgrpc.a  -lcrypto -lssl -lgflags -lglog -lprotobuf -lpthread -lboost_filesystem -lboost_system"],
       [test "x$OSX_PORT" == "x" ],
-        [AM_LDFLAGS="-lgrpc++ -lgrpc -lcrypto -lssl -lgflags -lglog -lprotobuf -lpthread -lboost_filesystem -lboost_system"],
+        [AM_LDFLAGS="-lgrpc++ -lgrpc `pkg-config --libs protobuf` -lcrypto -lssl -lgflags -lglog -lboost_filesystem -lboost_system"],
       [AC_MSG_ERROR([Mac ports not supported. You will need to add a solution for gRPC bug 7830])]
 )
 
