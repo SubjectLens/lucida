@@ -25,7 +25,7 @@ script. Currently this script prints an error message.
 
 For dependencies that need to be built locally do the following.
 
-1. Add a subdirectory for the local build and add it to the `PROJECT\_DEPS` 
+1. Add a subdirectory for the local build and add it to the `PROJECT_DEPS` 
    macro.  
 2. Add scripts to subdirectory. At a minimum you should create:
     - `build.sh`: This is run under your credentials so no sudo please.
