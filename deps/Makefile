@@ -159,10 +159,10 @@ endif
 endif
 	if python -c "import sys;print sys.version" | grep -i 'anaconda\|continuum' >/dev/null 2>/dev/null; \
 		then if which python | grep '^$(HOME)'; \
-			then ./pkg-installer.py --noroot python_deps.conf; \
-			else ./pkg-installer.py python_deps.conf; \
+			then ./pkg-installer.py -iv --noroot python_deps.conf; \
+			else ./pkg-installer.py -iv python_deps.conf; \
 			fi; \
-		else ./pkg-installer.py python_deps.conf; \
+		else ./pkg-installer.py -iv python_deps.conf; \
 		fi
 
 install: $(INSTALL_TARGETS)
