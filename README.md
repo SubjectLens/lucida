@@ -9,10 +9,10 @@ see [CONTRIBUTING](CONTRIBUTING.md) for more details.
 
 This fork differs from the orginal Lucida project in the following ways:
 - Uses gRPC instead of Thrift.
-- Build works on Debian, CentOS, and OSX.
+- Build works on Ubuntu and OSX.
 - Improved dependency management.
 
-Th conversion to gRPC is work-in-progress so it is not functional yet.
+The conversion to gRPC is work-in-progress so it is not functional yet.
 
 ## Overview
 
