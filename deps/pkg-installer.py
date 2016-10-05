@@ -63,13 +63,14 @@ class PackageInfo(object):
 
 
 allPackageMgrs = {}
-        
-    
+
+
 class PackageMgr(object):
     '''Generic package manager class
     '''
-    def __init__(self, name=None):
+    def __init__(self, name=None, noroot=False):
         self._name = name
+        self._noroot = noroot
 
     @classmethod
     def addPackageMgr(cls):
@@ -84,7 +85,7 @@ class PackageMgr(object):
 
     def getPackageInfo(self, names, debug=True):
         '''Get installed list of PackageInfo instances
-        
+
         Override this in derived classes.
         '''
         raise NotImplemented()
@@ -121,7 +122,7 @@ class PackageMgr(object):
             return 0 == os.system(command)
 
     def executeAsRoot(self, command, debug, verbose=False):
-        if os.getuid() != 0:
+        if not self._noroot and os.getuid() != 0:
             command = 'sudo ' + command;
         return self.execute(command, debug=debug, verbose=verbose)
 
@@ -162,12 +163,12 @@ class PackageMgr(object):
 
 
 class AptPackageMgr(PackageMgr):
-
+    '''Apt'''
     def __init__(self, *args, **kwargs):
         super(self.__class__, self).__init__(*args, **kwargs)
         self._threshold = 500 # just a guess
         # dpkg-query sample output
-        # un  www-browser 
+        # un  www-browser
         # ii  x11-common 1:7.7+1ubuntu8.1
         # ii  x11proto-composite-dev 1:0.4.2-2
         # ii  x11proto-core-dev 7.0.26-1~ubuntu2
@@ -258,7 +259,7 @@ class AptPackageMgr(PackageMgr):
                 before install.
             debug: If true commands are sent to stdout but not executed.
         '''
-        if os.getuid() == 0:
+        if self._noroot or os.getuid() == 0:
             updatefmt = 'aptitude %s'
             installfmt = 'aptitude -y install %s'
         else:
@@ -268,7 +269,7 @@ class AptPackageMgr(PackageMgr):
         if update:
             self.execute(updatefmt % 'update', debug=debug, verbose=verbose)
             self.execute(updatefmt % '-y upgrade', debug=debug, verbose=verbose)
-            
+
         args = ''
         for pkg in packageList:
             if (len(pkg.getName()) + 1 + len(args)) > 80:
@@ -333,7 +334,7 @@ class AptPackageMgr(PackageMgr):
                         warning('dpkg-query parse failure - check regex in this script')
                         pkg = PackageInfo(name=nm[0],state=PKG_INSTALLED,version=installed,requiredVersion=nm[1],candidateVersion=candidate)
                         pkgs.append(pkg)
-                    elif candidate is not None:    
+                    elif candidate is not None:
                         pkg = PackageInfo(name=nm[0],version=installed,requiredVersion=nm[1],candidateVersion=candidate)
                         pkgs.append(pkg)
                     else:
@@ -363,15 +364,136 @@ class AptPackageMgr(PackageMgr):
                         warning('dpkg-query parse failure - check regex in this script')
                         pkg = PackageInfo(name=nm[0],state=PKG_INSTALLED,version=installed,requiredVersion=nm[1],candidateVersion=candidate)
                         pkgs.append(pkg)
-                    elif candidate is not None:    
+                    elif candidate is not None:
                         pkg = PackageInfo(name=nm[0],version=installed,requiredVersion=nm[1],candidateVersion=candidate)
                         pkgs.append(pkg)
                     else:
                         # will need to do apt-get update
                         missing.append(nm)
 
-        return (pkgs, missing)    
-        
+        return (pkgs, missing)
+
+
+class PipPackageMgr(PackageMgr):
+    '''Pip'''
+    def __init__(self, *args, **kwargs):
+        super(self.__class__, self).__init__(*args, **kwargs)
+        # scikit-image (0.12.3)
+        # scikit-learn (0.17.1)
+        # scipy (0.17.1)
+        self._pip_list = re.compile(r'(?P<pkgname>[\w.~-]+)\s*\((?P<installed>\d+[.\d-]*)\)')
+        self._pip_search1 = re.compile(r'^(?P<pkgname>[\w.~-]+)\s*\((?P<candidate>\d+[.\d-]*)\)')
+        self._pip_search2 = re.compile(r'^\s*INSTALLED:\s*(?P<installed>\d+[.\d-]*)')
+
+    def _parsePipSearch1(self, result):
+        srch = self._pip_search1.search(result)
+        if srch is not None:
+            pkg = PackageInfo(name=srch.group('pkgname'), candidateVersion=srch.group('candidate'))
+            return pkg
+        return None
+
+    def _parsePipSearch2(self, pkg, result):
+        srch = self._pip_search2.search(result)
+        if srch is not None:
+            pkg._version = srch.group('installed')
+            return True
+        return False
+
+    def _parsePipList(self, result):
+        srch = self._pip_list.search(result)
+        if srch is not None:
+            pkg = PackageInfo(name=srch.group('pkgname'), version=srch.group('installed'))
+            pkg._state = PKG_INSTALLED
+            return pkg
+        return None
+
+    def getPackageInfo(self, names, debug=True):
+        '''Get packages in same order a names
+
+        Args:
+            names: list of package names.
+            debug: If true commands are sent to stdout but not executed.
+
+        Returns:
+            A tuple (list of PackageInfo instances, list of missing names).
+        '''
+        if not isinstance(names, collections.Iterable):
+            names = { names: 'latest' }
+        pkgs = []
+        missing = []
+        allpkgs = {}
+        with open(os.devnull, 'w') as FNULL:
+            results = subprocess.Popen(['pip', 'list'], stderr=FNULL, stdout=subprocess.PIPE).communicate()[0]
+        results = results.split('\n')
+        for result in results:
+            if len(result) == 0:
+                continue
+            pkg = self._parsePipList(result)
+            if pkg is not None:
+                allpkgs[pkg.getName()] = pkg
+        todo = []
+        for nm in names:
+            pkg = allpkgs.get(nm[0])
+            if pkg is not None:
+                pkg._required_version = nm[1]
+                if len(nm) == 3:
+                    pkg._custom_action = nm[2]
+                pkgs.append(pkg)
+            else:
+                todo.append(nm)
+
+        with open(os.devnull, 'w') as FNULL:
+            for nm in todo:
+                pkg = None
+                # Handle pips woeful search facilty inherited from pypi.
+                target = re.split('[\d,.~-]', nm[0])
+                results = subprocess.Popen(['pip', 'search', target[0]], stderr=FNULL, stdout=subprocess.PIPE).communicate()[0]
+                if debug:
+                    print('Searching for %s' % nm[0])
+                    print('---------')
+                    print(results)
+                    print('---------')
+                results = results.split('\n')
+                for r in results:
+                    if pkg is not None:
+                        self._parsePipSearch2(pkg, r)
+                        break
+                    if r.find(nm[0]) == 0:
+                        if debug: print('found partial match: %s' % r)
+                        pkg = self._parsePipSearch1(r)
+                        if pkg is not None and pkg.getName() != nm[0]:
+                            pkg = None
+                            continue
+                        elif pkg is not None:
+                            pkgs.append(pkg)
+                if pkg is None:
+                    missing.append(nm)
+        return (pkgs, missing)
+
+    def installPackages(self, packageList, update, debug, verbose):
+        '''Install packages.
+
+        Args:
+            packageList: list of PackageInfo instances
+            update: Ignored for PIP.
+            debug: If true commands are sent to stdout but not executed.
+        '''
+        for pkg in packageList:
+            if pkg.getRequiredVersion() != 'latest':
+                self.executeAsRoot('pip install %s==%s' (pkg.getName(), pkg.getRequiredVersion()), debug=debug, verbose=verbose)
+            else:
+                self.executeAsRoot('pip install ' + pkg.getName(), debug=debug, verbose=verbose)
+
+    def refreshPackageCandidates(self, packageList, debug):
+        '''Refresh candidate version..
+        Does nothing for PIP.
+
+        Args:
+            packageList: list of PackageInfo instances
+            debug: If true commands are sent to stdout but not executed.
+        '''
+        pass
+
 
 def die(msg=None):
     if msg is not None:
@@ -421,13 +543,14 @@ def grep_platform(regex):
     except:
         pass
     die('bad regex %s in package-selector section' % regex)
-    return False     
+    return False
+
 
 def printPackageInfo(packages):
     for u in packages:
         #     0         1         2         3         4         5         6
         #     0123456789012345678901234567890123456789012345678901234567890
-        print('  Package Name     Installed      Required     Candidate')  
+        print('  Package Name     Installed      Required     Candidate')
         print('  ------------     ---------      --------     ---------')
         print('  %-16s %-14s %-12s %-14s' % (u.getName(), u.getVersion(True), u.getRequiredVersion(True), u.getCandidateVersion(True)))
 
@@ -441,6 +564,7 @@ if __name__ == '__main__':
     parser.add_option('-l', '--list', action='store_true', dest='pkglist', help='list selected packages on stdout')
     parser.add_option('-v', '--verbose', action='store_true', dest='verbose', help='verbose output')
     parser.add_option('-i', '--install', action='store_true', dest='pkginstall', help='install selected packages')
+    parser.add_option('-r', '--noroot', action='store_true', dest='noroot', help='do not install as root')
     parser.add_option('-d', '--debug', action='store_true', dest='debug', help='used with install, print commands but don\'t execute')
     (options, args) = parser.parse_args()
     if args is None or len(args) == 0:
@@ -454,12 +578,14 @@ if __name__ == '__main__':
 
     # Add supported package managers
     AptPackageMgr.addPackageMgr()
+    PipPackageMgr.addPackageMgr()
 
     # Parse configuration files
     if HANDLE_DUPS:
         cfg = ConfigParser.ConfigParser(dict_type=MultiDict)
     else:
         cfg = ConfigParser.ConfigParser(dict_type=dict)
+    cfg.optionxform = str # preserve case on keys
     success = cfg.read(args)
     mgrs = {}
     if not cfg.has_section('package-managers'):
@@ -472,7 +598,7 @@ if __name__ == '__main__':
         if cls is None:
             warning('%s package-manager class not found' % v)
             continue
-        mgrMap[k] = cls(k)
+        mgrMap[k] = cls(name=k, noroot=options.noroot)
     if len(mgrMap) == 0:
         die('no package-managers map to classes')
 
@@ -497,7 +623,7 @@ if __name__ == '__main__':
                 cfg.remove_section(k)
         if len(mgrMap) == 0:
             die('no package-managers after processing package-selector section')
-    
+
     # Load packages for each package-manager
     selections = []
     for k,mgr in mgrMap.iteritems():
@@ -510,7 +636,7 @@ if __name__ == '__main__':
             for T in items:
                 tmp = T[1].split('\n')
                 if len(tmp) > 1:
-                    die('requested multiple versions for package %s:%s' % (T[0],tmp)) 
+                    die('requested multiple versions for package %s:%s' % (T[0],tmp))
         # Check for custom actions
         custom = []
         xitems = []
