@@ -154,15 +154,15 @@ ifeq ($(OSXPORTS),1)
 	$(SUDO) ./install-osx-macports-pkgs.sh
 else
 	# will sudo if required
-	./install-linux-pkgs.py -iv linux_pkg_deps.conf
+	./pkg-installer.py -iv linux_pkg_deps.conf
 endif
 endif
 	if python -c "import sys;print sys.version" | grep -i 'anaconda\|continuum' >/dev/null 2>/dev/null; \
 		then if which python | grep '^$(HOME)'; \
-			then pip install -r python_deps.txt; \
-			else sudo pip install -r python_deps.txt; \
+			then ./pkg-installer.py --noroot python_deps.conf; \
+			else ./pkg-installer.py python_deps.conf; \
 			fi; \
-		else sudo pip install -r python_deps.txt; \
+		else ./pkg-installer.py python_deps.conf; \
 		fi
 
 install: $(INSTALL_TARGETS)
